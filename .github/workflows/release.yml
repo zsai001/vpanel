@@ -9,11 +9,11 @@ permissions:
   contents: write
 
 env:
-  GO_VERSION: '1.21'
+  GO_VERSION: '1.22'
   NODE_VERSION: '20'
 
 jobs:
-  # 构建服务端和 Agent
+  # 构建服务端
   build:
     name: Build Binaries
     runs-on: ubuntu-latest
@@ -27,62 +27,62 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-
-      - name: Get version
-        id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-
-      - name: Build Server (Linux amd64)
-        run: |
-          cd server
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
-            -ldflags "-s -w -X main.Version=${{ steps.version.outputs.VERSION }}" \
-            -o ../bin/vpanel-server-linux-amd64 ./cmd/server
-
-      - name: Build Server (Linux arm64)
-        run: |
-          cd server
-          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build \
-            -ldflags "-s -w -X main.Version=${{ steps.version.outputs.VERSION }}" \
-            -o ../bin/vpanel-server-linux-arm64 ./cmd/server
-
-      - name: Build Agent (Linux amd64)
-        run: |
-          cd agent
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
-            -ldflags "-s -w -X main.Version=${{ steps.version.outputs.VERSION }}" \
-            -o ../bin/vpanel-agent-linux-amd64 ./cmd/agent
-
-      - name: Build Agent (Linux arm64)
-        run: |
-          cd agent
-          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build \
-            -ldflags "-s -w -X main.Version=${{ steps.version.outputs.VERSION }}" \
-            -o ../bin/vpanel-agent-linux-arm64 ./cmd/agent
-
-      - name: Build Agent (macOS amd64)
-        run: |
-          cd agent
-          CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build \
-            -ldflags "-s -w -X main.Version=${{ steps.version.outputs.VERSION }}" \
-            -o ../bin/vpanel-agent-darwin-amd64 ./cmd/agent
-
-      - name: Build Agent (macOS arm64)
-        run: |
-          cd agent
-          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build \
-            -ldflags "-s -w -X main.Version=${{ steps.version.outputs.VERSION }}" \
-            -o ../bin/vpanel-agent-darwin-arm64 ./cmd/agent
+          cache-dependency-path: panel/go.sum
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "VERSION_SHORT=${VERSION#v}" >> $GITHUB_OUTPUT
+
+      - name: Download Go dependencies
+        run: |
+          cd panel
+          go mod download
+
+      - name: Run Go tests
+        run: |
+          cd panel
+          go test -v -race -coverprofile=coverage.out ./...
+
+      - name: Build Server binaries
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }}
+          mkdir -p bin
+          
+          # Linux amd64
+          cd panel
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+            -ldflags "-s -w -X main.Version=${VERSION}" \
+            -o ../bin/vpanel-server-linux-amd64 ./cmd/server
+          
+          # Linux arm64
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build \
+            -ldflags "-s -w -X main.Version=${VERSION}" \
+            -o ../bin/vpanel-server-linux-arm64 ./cmd/server
+
+      - name: Install frontend dependencies
+        run: |
+          cd web
+          npm ci
+
+      - name: Run frontend tests
+        run: |
+          cd web
+          npm run lint --if-present
+          npm run test --if-present
 
       - name: Build Web Frontend
         run: |
           cd web
-          npm ci
           npm run build
 
       - name: Package releases
@@ -93,7 +93,6 @@ jobs:
           # Linux amd64
           mkdir -p vpanel-${VERSION}-linux-amd64
           cp bin/vpanel-server-linux-amd64 vpanel-${VERSION}-linux-amd64/vpanel-server
-          cp bin/vpanel-agent-linux-amd64 vpanel-${VERSION}-linux-amd64/vpanel-agent
           cp -r web/dist vpanel-${VERSION}-linux-amd64/web
           cp scripts/install.sh vpanel-${VERSION}-linux-amd64/
           cp deploy/docker/config.yaml vpanel-${VERSION}-linux-amd64/config.example.yaml
@@ -102,17 +101,10 @@ jobs:
           # Linux arm64
           mkdir -p vpanel-${VERSION}-linux-arm64
           cp bin/vpanel-server-linux-arm64 vpanel-${VERSION}-linux-arm64/vpanel-server
-          cp bin/vpanel-agent-linux-arm64 vpanel-${VERSION}-linux-arm64/vpanel-agent
           cp -r web/dist vpanel-${VERSION}-linux-arm64/web
           cp scripts/install.sh vpanel-${VERSION}-linux-arm64/
           cp deploy/docker/config.yaml vpanel-${VERSION}-linux-arm64/config.example.yaml
           tar -czvf releases/vpanel-${VERSION}-linux-arm64.tar.gz vpanel-${VERSION}-linux-arm64
-          
-          # Agent only packages
-          tar -czvf releases/vpanel-agent-${VERSION}-linux-amd64.tar.gz -C bin vpanel-agent-linux-amd64
-          tar -czvf releases/vpanel-agent-${VERSION}-linux-arm64.tar.gz -C bin vpanel-agent-linux-arm64
-          tar -czvf releases/vpanel-agent-${VERSION}-darwin-amd64.tar.gz -C bin vpanel-agent-darwin-amd64
-          tar -czvf releases/vpanel-agent-${VERSION}-darwin-arm64.tar.gz -C bin vpanel-agent-darwin-arm64
           
           # Generate checksums
           cd releases
@@ -123,6 +115,7 @@ jobs:
         with:
           name: releases
           path: releases/
+          retention-days: 7
 
   # 构建 Docker 镜像
   docker:
@@ -132,12 +125,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: releases
-          path: releases/
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -153,7 +140,19 @@ jobs:
 
       - name: Get version
         id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: vpanel/vpanel
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push
         uses: docker/build-push-action@v5
@@ -162,9 +161,10 @@ jobs:
           file: deploy/docker/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            vpanel/vpanel:${{ steps.version.outputs.VERSION }}
-            vpanel/vpanel:latest
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   # 构建官网
   docs:
@@ -186,7 +186,7 @@ jobs:
       - name: Build docs
         run: |
           cd docs
-          npm ci
+          npm install
           npm run build
         env:
           VITE_VERSION: ${{ steps.version.outputs.VERSION }}
@@ -196,6 +196,7 @@ jobs:
         with:
           name: docs
           path: docs/.vitepress/dist/
+          retention-days: 7
 
   # 创建 GitHub Release
   release:
@@ -227,7 +228,7 @@ jobs:
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           name: VPanel ${{ steps.version.outputs.VERSION }}
           draft: false
@@ -242,6 +243,7 @@ jobs:
     name: Deploy Docs
     runs-on: ubuntu-latest
     needs: docs
+    if: github.repository == 'zsoft-vpanel/vpanel'
     steps:
       - name: Download docs
         uses: actions/download-artifact@v4
@@ -268,4 +270,3 @@ jobs:
           script: |
             cd /opt/vpanel-docs
             docker compose restart || docker compose up -d
-

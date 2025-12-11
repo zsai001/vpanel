@@ -14,7 +14,7 @@
   ╚═══╝  ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═══╝╚══════╝╚══════╝
 ```
 
-<div align="center">
+<div align="center" style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
   <img src="docs/public/show.png" alt="VPanel Screenshot" />
   <img src="docs/public/show2.png" alt="VPanel Screenshot 2" />
 </div>

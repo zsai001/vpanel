@@ -7,11 +7,11 @@ WORKDIR /build
 RUN apk add --no-cache git gcc musl-dev
 
 # Copy go mod files
-COPY server/go.mod server/go.sum ./
+COPY panel/go.mod panel/go.sum ./
 RUN go mod download
 
 # Copy source code
-COPY server/ ./
+COPY panel/ ./
 
 # Build binary
 RUN CGO_ENABLED=1 GOOS=linux go build -a -ldflags '-linkmode external -extldflags "-static" -s -w' -o vpanel-server ./cmd/server

@@ -1,0 +1,123 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/workflows/release.yml'
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+
+env:
+  GO_VERSION: '1.22'
+  NODE_VERSION: '20'
+
+jobs:
+  # 后端测试
+  backend:
+    name: Backend Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: panel/go.sum
+
+      - name: Download dependencies
+        run: |
+          cd panel
+          go mod download
+
+      - name: Verify dependencies
+        run: |
+          cd panel
+          go mod verify
+
+      - name: Run go vet
+        run: |
+          cd panel
+          go vet ./...
+
+      - name: Run tests
+        run: |
+          cd panel
+          go test -v -race -coverprofile=coverage.out ./...
+
+      - name: Build check
+        run: |
+          cd panel
+          CGO_ENABLED=0 go build -o /dev/null ./cmd/server
+
+  # 前端测试
+  frontend:
+    name: Frontend Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd web
+          npm ci
+
+      - name: Run linter
+        run: |
+          cd web
+          npm run lint --if-present
+
+      - name: Run type check
+        run: |
+          cd web
+          npm run typecheck --if-present
+
+      - name: Run tests
+        run: |
+          cd web
+          npm run test --if-present
+
+      - name: Build check
+        run: |
+          cd web
+          npm run build
+
+  # Docker 构建测试
+  docker:
+    name: Docker Build Test
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image (test)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: deploy/docker/Dockerfile
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

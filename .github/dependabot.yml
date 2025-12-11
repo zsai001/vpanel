@@ -1,0 +1,57 @@
+version: 2
+updates:
+  # Go modules
+  - package-ecosystem: "gomod"
+    directory: "/panel"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps(go):"
+    labels:
+      - "dependencies"
+      - "go"
+
+  # NPM for web
+  - package-ecosystem: "npm"
+    directory: "/web"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps(npm):"
+    labels:
+      - "dependencies"
+      - "npm"
+    groups:
+      minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # NPM for docs
+  - package-ecosystem: "npm"
+    directory: "/docs"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "deps(docs):"
+    labels:
+      - "dependencies"
+      - "documentation"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "ci:"
+    labels:
+      - "dependencies"
+      - "ci"
