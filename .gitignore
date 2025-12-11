@@ -1,0 +1,59 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Build output
+bin/
+dist/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Data
+data/
+*.db
+*.sqlite
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Temp
+tmp/
+temp/
+*.tmp
+
+# Coverage
+coverage/
+coverage.out
+coverage.html
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Plugins (user installed)
+plugins/*
+!plugins/.gitkeep
+
+# Backups
+backups/
+
+# Docs build output
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+docs/node_modules/
+

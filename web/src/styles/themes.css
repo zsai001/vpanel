@@ -1,0 +1,700 @@
+/* Theme Variables */
+:root {
+  /* Default accent - Dify Blue/Purple */
+  --color-primary: 21 94 239;
+  --color-primary-light: 59 130 246;
+  --color-primary-dark: 37 99 235;
+  
+  /* Border radius */
+  --radius: 0.5rem;
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-lg: calc(var(--radius) * 1.5);
+  
+  /* Dify specific colors */
+  --dify-blue: 21 94 239;
+  --dify-purple: 123 97 255;
+  --dify-gradient-start: 21 94 239;
+  --dify-gradient-end: 147 51 234;
+}
+
+/* Initialize dark mode by default */
+:root {
+  color-scheme: dark;
+}
+
+html {
+  @apply dark;
+}
+
+/* ========================================
+   DARK MODE (Default) - Dify Style
+   ======================================== */
+.dark {
+  --bg-primary: 17 24 39;
+  --bg-secondary: 31 41 55;
+  --bg-tertiary: 55 65 81;
+  --bg-elevated: 75 85 99;
+  
+  --text-primary: 249 250 251;
+  --text-secondary: 156 163 175;
+  --text-tertiary: 107 114 128;
+  --text-muted: 75 85 99;
+  
+  --border-primary: 55 65 81;
+  --border-secondary: 31 41 55;
+}
+
+/* ========================================
+   LIGHT MODE - Dify Style
+   ======================================== */
+.light {
+  --bg-primary: 255 255 255;
+  --bg-secondary: 249 250 251;
+  --bg-tertiary: 243 244 246;
+  --bg-elevated: 229 231 235;
+  
+  --text-primary: 17 24 39;
+  --text-secondary: 75 85 99;
+  --text-tertiary: 107 114 128;
+  --text-muted: 156 163 175;
+  
+  --border-primary: 229 231 235;
+  --border-secondary: 209 213 219;
+  
+  color-scheme: light;
+}
+
+/* Light mode base styles */
+.light,
+.light body {
+  @apply bg-gray-50 text-gray-900;
+}
+
+/* Light mode sidebar */
+.light aside,
+.light .sidebar {
+  @apply !bg-white !border-gray-200 !text-gray-700;
+}
+
+.light aside a,
+.light aside button {
+  @apply !text-gray-600;
+}
+
+.light aside a:hover,
+.light aside button:hover {
+  @apply !bg-gray-100 !text-gray-900;
+}
+
+.light aside a.active,
+.light aside .active {
+  @apply !bg-blue-50 !text-blue-600;
+}
+
+/* Light mode header */
+.light header {
+  @apply !bg-white/95 !backdrop-blur-md !border-gray-200;
+}
+
+.light header input {
+  @apply !bg-gray-100 !border-gray-200 !text-gray-900 !placeholder-gray-400;
+}
+
+.light header button {
+  @apply !text-gray-600 hover:!text-gray-900 hover:!bg-gray-100;
+}
+
+/* Light mode cards */
+.light .card,
+.light [class*="bg-gray-800"],
+.light [class*="bg-gray-900"] {
+  @apply !bg-white !border-gray-200 !text-gray-900;
+}
+
+/* Light mode text */
+.light [class*="text-gray-100"],
+.light [class*="text-gray-200"],
+.light [class*="text-white"] {
+  @apply !text-gray-900;
+}
+
+.light [class*="text-gray-300"],
+.light [class*="text-gray-400"] {
+  @apply !text-gray-600;
+}
+
+.light [class*="text-gray-500"] {
+  @apply !text-gray-500;
+}
+
+/* Light mode inputs */
+.light input,
+.light select,
+.light textarea {
+  @apply !bg-white !border-gray-300 !text-gray-900 placeholder:!text-gray-400;
+}
+
+.light input:focus,
+.light select:focus,
+.light textarea:focus {
+  @apply !border-blue-500 !ring-blue-500/20;
+}
+
+/* Light mode dropdowns and modals */
+.light .dropdown,
+.light .modal,
+.light [class*="bg-gray-800"][class*="border"] {
+  @apply !bg-white !border-gray-200 !shadow-xl;
+}
+
+/* Light mode menu items */
+.light .menu-item {
+  @apply !text-gray-600 hover:!bg-gray-100 hover:!text-gray-900;
+}
+
+.light .menu-item-active {
+  @apply !bg-blue-50 !text-blue-600;
+}
+
+/* Light mode borders */
+.light [class*="border-gray-700"],
+.light [class*="border-gray-800"] {
+  @apply !border-gray-200;
+}
+
+/* Light mode backgrounds */
+.light main {
+  @apply !bg-gray-50;
+}
+
+.light [class*="from-gray-950"],
+.light [class*="via-gray-900"],
+.light [class*="to-gray-950"] {
+  @apply !from-gray-100 !via-gray-50 !to-gray-100;
+}
+
+/* Light mode stat cards */
+.light [class*="bg-blue-500\\/10"],
+.light [class*="bg-green-500\\/10"],
+.light [class*="bg-purple-500\\/10"],
+.light [class*="bg-orange-500\\/10"] {
+  @apply !bg-opacity-15;
+}
+
+/* Light mode badges */
+.light .badge {
+  @apply !border-gray-300;
+}
+
+/* ========================================
+   LIGHT MODE - Page Content Override
+   ======================================== */
+
+/* Light mode page titles and headers */
+.light h1,
+.light h2,
+.light h3,
+.light h4 {
+  @apply !text-gray-900;
+}
+
+/* Light mode cards - comprehensive override */
+.light .card {
+  @apply !bg-white !border-gray-200;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+/* Light mode card content text */
+.light .card p,
+.light .card span {
+  @apply text-gray-600;
+}
+
+.light .card h1,
+.light .card h2,
+.light .card h3,
+.light .card h4,
+.light .card h5 {
+  @apply !text-gray-900;
+}
+
+/* Light mode select/dropdown */
+.light select {
+  @apply !bg-white !border-gray-300 !text-gray-900;
+}
+
+.light select option {
+  @apply !bg-white !text-gray-900;
+}
+
+/* Light mode stat cards number */
+.light .text-3xl,
+.light .text-2xl,
+.light .text-xl {
+  @apply !text-gray-900;
+}
+
+/* Light mode dark text overrides */
+.light [class*="text-dark-100"] {
+  color: rgb(17 24 39) !important;
+}
+
+.light [class*="text-dark-200"] {
+  color: rgb(31 41 55) !important;
+}
+
+.light [class*="text-dark-300"] {
+  color: rgb(55 65 81) !important;
+}
+
+.light [class*="text-dark-400"] {
+  color: rgb(75 85 99) !important;
+}
+
+.light [class*="text-dark-500"] {
+  color: rgb(107 114 128) !important;
+}
+
+/* Light mode dark background overrides */
+.light [class*="bg-dark-700"],
+.light [class*="bg-dark-750"],
+.light [class*="bg-dark-800"] {
+  background-color: rgb(243 244 246) !important;
+}
+
+.light [class*="bg-dark-900"],
+.light [class*="bg-dark-950"] {
+  background-color: rgb(249 250 251) !important;
+}
+
+/* Light mode border overrides */
+.light [class*="border-dark-600"],
+.light [class*="border-dark-700"],
+.light [class*="border-dark-800"] {
+  border-color: rgb(229 231 235) !important;
+}
+
+/* Light mode hover states */
+.light [class*="hover:bg-dark-800"]:hover,
+.light [class*="hover:bg-dark-700"]:hover {
+  background-color: rgb(229 231 235) !important;
+}
+
+.light [class*="hover:text-dark-100"]:hover {
+  color: rgb(17 24 39) !important;
+}
+
+/* Light mode chart tooltip */
+.light .recharts-tooltip-wrapper .recharts-default-tooltip {
+  background-color: white !important;
+  border: 1px solid rgb(229 231 235) !important;
+}
+
+/* Light mode resource gauge */
+.light .text-dark-800 {
+  color: rgb(229 231 235) !important;
+}
+
+/* Light mode quick actions */
+.light [class*="bg-dark-800\\/50"] {
+  background-color: rgb(249 250 251) !important;
+}
+
+/* Light mode alert items hover */
+.light [class*="hover:bg-dark-800\\/50"]:hover {
+  background-color: rgb(243 244 246) !important;
+}
+
+/* Light mode gradient text fallback */
+.light .gradient-text,
+.light .dify-gradient-text {
+  color: rgb(21 94 239);
+}
+
+/* ========================================
+   STYLE: DEFAULT (Dify Style)
+   ======================================== */
+[data-style="default"] .card,
+.card {
+  @apply bg-gray-800/60 backdrop-blur-sm border-gray-700/50 shadow-lg;
+}
+
+[data-style="default"] .sidebar,
+.sidebar {
+  @apply bg-gray-900 border-gray-800;
+}
+
+/* ========================================
+   STYLE: GLASSMORPHISM
+   ======================================== */
+[data-style="glassmorphism"] .card {
+  @apply bg-white/5 border-white/10 backdrop-blur-xl shadow-xl;
+}
+
+[data-style="glassmorphism"] .sidebar,
+[data-style="glassmorphism"] aside {
+  @apply bg-black/30 backdrop-blur-xl border-white/10;
+}
+
+[data-style="glassmorphism"] header {
+  @apply bg-black/20 backdrop-blur-xl border-white/10;
+}
+
+[data-style="glassmorphism"] .input,
+[data-style="glassmorphism"] input,
+[data-style="glassmorphism"] select {
+  @apply bg-white/5 border-white/10;
+}
+
+[data-style="glassmorphism"] .dropdown,
+[data-style="glassmorphism"] .modal {
+  @apply bg-black/40 backdrop-blur-xl border-white/10;
+}
+
+.light[data-style="glassmorphism"] .card {
+  @apply bg-white/70 border-white/50;
+}
+
+.light[data-style="glassmorphism"] .sidebar {
+  @apply bg-white/70 border-white/50;
+}
+
+/* ========================================
+   STYLE: NEUMORPHISM
+   ======================================== */
+[data-style="neumorphism"] .card {
+  @apply bg-gray-800 border-transparent;
+  box-shadow: 
+    8px 8px 16px rgba(0, 0, 0, 0.4),
+    -8px -8px 16px rgba(60, 60, 80, 0.15);
+}
+
+[data-style="neumorphism"] .btn-primary {
+  box-shadow: 
+    4px 4px 8px rgba(0, 0, 0, 0.3),
+    -4px -4px 8px rgba(60, 60, 80, 0.12);
+}
+
+[data-style="neumorphism"] .input,
+[data-style="neumorphism"] input,
+[data-style="neumorphism"] select {
+  @apply bg-gray-800 border-transparent;
+  box-shadow: 
+    inset 4px 4px 8px rgba(0, 0, 0, 0.3),
+    inset -4px -4px 8px rgba(60, 60, 80, 0.12);
+}
+
+.light[data-style="neumorphism"] .card {
+  @apply bg-gray-100;
+  box-shadow: 
+    8px 8px 16px rgba(0, 0, 0, 0.08),
+    -8px -8px 16px rgba(255, 255, 255, 0.9);
+}
+
+.light[data-style="neumorphism"] .input,
+.light[data-style="neumorphism"] input {
+  @apply bg-gray-100;
+  box-shadow: 
+    inset 4px 4px 8px rgba(0, 0, 0, 0.06),
+    inset -4px -4px 8px rgba(255, 255, 255, 0.9);
+}
+
+/* ========================================
+   STYLE: BRUTALIST
+   ======================================== */
+[data-style="brutalist"] {
+  --radius: 0;
+}
+
+[data-style="brutalist"] .card {
+  @apply bg-gray-900 border-2 border-gray-100 rounded-none;
+  box-shadow: 4px 4px 0px rgb(var(--text-primary));
+}
+
+[data-style="brutalist"] .btn-primary {
+  @apply rounded-none border-2 border-white;
+  box-shadow: 3px 3px 0px white;
+}
+
+[data-style="brutalist"] .btn-primary:hover {
+  box-shadow: 1px 1px 0px white;
+  transform: translate(2px, 2px);
+}
+
+[data-style="brutalist"] .input,
+[data-style="brutalist"] input,
+[data-style="brutalist"] select {
+  @apply rounded-none border-2 border-gray-400;
+}
+
+[data-style="brutalist"] .badge {
+  @apply rounded-none;
+}
+
+[data-style="brutalist"] .sidebar {
+  @apply border-r-4 border-gray-100;
+}
+
+.light[data-style="brutalist"] .card {
+  @apply bg-white border-gray-900;
+  box-shadow: 4px 4px 0px rgb(17 24 39);
+}
+
+.light[data-style="brutalist"] .btn-primary {
+  @apply border-gray-900;
+  box-shadow: 3px 3px 0px rgb(17 24 39);
+}
+
+/* ========================================
+   STYLE: RETRO
+   ======================================== */
+[data-style="retro"] .card {
+  @apply bg-gradient-to-br from-gray-800 via-gray-800 to-gray-900 border-gray-600;
+}
+
+[data-style="retro"] .sidebar {
+  @apply bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900;
+}
+
+[data-style="retro"] header {
+  @apply bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900;
+}
+
+[data-style="retro"] .btn-primary {
+  @apply bg-gradient-to-r from-[rgb(var(--color-primary))] via-[rgb(var(--color-primary-light))] to-[rgb(var(--color-primary))];
+  background-size: 200% 100%;
+  animation: gradient-shift 3s ease infinite;
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+[data-style="retro"] .progress-bar {
+  @apply bg-gradient-to-r from-[rgb(var(--color-primary-dark))] via-[rgb(var(--color-primary))] to-[rgb(var(--color-primary-light))];
+}
+
+.light[data-style="retro"] .card {
+  @apply bg-gradient-to-br from-white via-gray-50 to-gray-100;
+}
+
+/* ========================================
+   DIFY GRADIENT UTILITIES
+   ======================================== */
+.dify-gradient {
+  background: linear-gradient(135deg, rgb(21 94 239) 0%, rgb(147 51 234) 100%);
+}
+
+.dify-gradient-text {
+  background: linear-gradient(135deg, rgb(21 94 239) 0%, rgb(147 51 234) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.dify-gradient-border {
+  position: relative;
+}
+
+.dify-gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgb(21 94 239) 0%, rgb(147 51 234) 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+/* ========================================
+   ACCENT COLOR UTILITIES
+   ======================================== */
+.text-accent {
+  color: rgb(var(--color-primary));
+}
+
+.bg-accent {
+  background-color: rgb(var(--color-primary));
+}
+
+.border-accent {
+  border-color: rgb(var(--color-primary));
+}
+
+.ring-accent {
+  --tw-ring-color: rgb(var(--color-primary));
+}
+
+/* Gradient text with accent */
+.gradient-text {
+  background: linear-gradient(
+    135deg,
+    rgb(var(--color-primary)) 0%,
+    rgb(var(--color-primary-light)) 50%,
+    rgb(var(--color-primary)) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glow effect with accent */
+.glow-accent {
+  box-shadow: 0 0 20px rgba(var(--color-primary), 0.3);
+}
+
+.glow-accent-lg {
+  box-shadow: 0 0 40px rgba(var(--color-primary), 0.4);
+}
+
+/* Button primary with accent - Dify Style */
+.btn-primary {
+  background: linear-gradient(135deg, rgb(var(--color-primary)) 0%, rgb(var(--color-primary-dark)) 100%);
+  box-shadow: 0 4px 14px rgba(var(--color-primary), 0.25);
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, rgb(var(--color-primary-light)) 0%, rgb(var(--color-primary)) 100%);
+  box-shadow: 0 6px 20px rgba(var(--color-primary), 0.35);
+  transform: translateY(-1px);
+}
+
+/* Badge primary with accent */
+.badge-primary {
+  background-color: rgba(var(--color-primary), 0.15);
+  color: rgb(var(--color-primary));
+  border-color: rgba(var(--color-primary), 0.25);
+}
+
+/* Focus ring with accent */
+.focus-accent:focus {
+  --tw-ring-color: rgba(var(--color-primary), 0.5);
+  border-color: rgb(var(--color-primary));
+}
+
+/* Menu item active with accent */
+.menu-item-active {
+  background-color: rgba(var(--color-primary), 0.1);
+  color: rgb(var(--color-primary));
+  border-left: 3px solid rgb(var(--color-primary));
+}
+
+/* Progress bar with accent */
+.progress-accent .progress-bar {
+  background: linear-gradient(90deg, rgb(var(--color-primary)) 0%, rgb(var(--color-primary-light)) 100%);
+}
+
+/* ========================================
+   DIFY SPECIFIC COMPONENT STYLES
+   ======================================== */
+/* Sidebar - Dify style */
+.sidebar-dify {
+  @apply bg-gray-900 border-r border-gray-800;
+}
+
+.sidebar-dify .nav-item {
+  @apply px-3 py-2 rounded-lg text-gray-400 transition-all duration-200;
+}
+
+.sidebar-dify .nav-item:hover {
+  @apply bg-gray-800 text-white;
+}
+
+.sidebar-dify .nav-item.active {
+  @apply bg-blue-500/10 text-blue-500;
+  border-left: 3px solid rgb(var(--color-primary));
+  margin-left: -3px;
+  padding-left: calc(0.75rem + 3px);
+}
+
+/* Card - Dify style */
+.card-dify {
+  @apply bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-xl p-6;
+  transition: all 0.2s ease;
+}
+
+.card-dify:hover {
+  @apply border-gray-600/50;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* Input - Dify style */
+.input-dify {
+  @apply bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-2.5 text-white;
+  @apply placeholder:text-gray-500;
+  @apply focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500;
+  transition: all 0.2s ease;
+}
+
+/* Button - Dify style */
+.btn-dify {
+  @apply px-4 py-2.5 rounded-lg font-medium transition-all duration-200;
+}
+
+.btn-dify-primary {
+  @apply bg-gradient-to-r from-blue-600 to-purple-600 text-white;
+  @apply hover:from-blue-500 hover:to-purple-500;
+  @apply shadow-lg shadow-blue-500/25;
+}
+
+.btn-dify-secondary {
+  @apply bg-gray-700 text-gray-200;
+  @apply hover:bg-gray-600;
+}
+
+/* Badge - Dify style */
+.badge-dify {
+  @apply px-2.5 py-1 rounded-full text-xs font-medium;
+}
+
+.badge-dify-blue {
+  @apply bg-blue-500/15 text-blue-400;
+}
+
+.badge-dify-green {
+  @apply bg-green-500/15 text-green-400;
+}
+
+.badge-dify-purple {
+  @apply bg-purple-500/15 text-purple-400;
+}
+
+.badge-dify-orange {
+  @apply bg-orange-500/15 text-orange-400;
+}
+
+/* Avatar - Dify style with gradient border */
+.avatar-dify {
+  @apply relative rounded-full;
+}
+
+.avatar-dify::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, rgb(21 94 239), rgb(147 51 234));
+  z-index: -1;
+}
+
+/* Stats card - Dify style */
+.stat-card-dify {
+  @apply relative overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6;
+  @apply border border-gray-700/50;
+}
+
+.stat-card-dify::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 150px;
+  height: 150px;
+  background: radial-gradient(circle, rgba(var(--color-primary), 0.15) 0%, transparent 70%);
+  transform: translate(30%, -30%);
+}

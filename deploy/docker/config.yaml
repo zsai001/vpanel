@@ -1,0 +1,78 @@
+# VPanel Configuration File
+# https://vpanel.io/docs/configuration
+
+server:
+  port: 8080
+  mode: release  # debug, release
+  web_dir: /opt/vpanel/web
+  
+  cors:
+    enabled: true
+    allowed_origins:
+      - "*"
+    allowed_methods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - OPTIONS
+    allowed_headers:
+      - "*"
+  
+  rate_limit:
+    enabled: true
+    requests: 100
+    window: 60  # seconds
+  
+  tls:
+    enabled: false
+    cert_file: ""
+    key_file: ""
+
+database:
+  driver: sqlite  # sqlite, postgres
+  database: /opt/vpanel/data/vpanel.db
+  # PostgreSQL settings
+  # host: localhost
+  # port: 5432
+  # username: vpanel
+  # password: ""
+  # ssl_mode: disable
+
+auth:
+  jwt_secret: ""  # Auto-generated if empty
+  token_expiry: 60  # minutes
+  refresh_expiry: 7  # days
+  session_timeout: 30  # minutes
+  max_login_attempts: 5
+  lockout_duration: 15  # minutes
+  
+  oauth:
+    github:
+      enabled: false
+      client_id: ""
+      client_secret: ""
+      redirect_url: ""
+    google:
+      enabled: false
+      client_id: ""
+      client_secret: ""
+      redirect_url: ""
+
+plugin:
+  directory: /opt/vpanel/plugins
+  data_directory: /opt/vpanel/data/plugins
+  market_url: https://market.vpanel.io
+  auto_update: false
+
+storage:
+  data_dir: /opt/vpanel/data
+  temp_dir: /opt/vpanel/data/temp
+  backup_dir: /opt/vpanel/backups
+  log_dir: /opt/vpanel/logs
+
+logging:
+  level: info  # debug, info, warn, error
+  format: json  # json, console
+  output: stdout  # stdout, file
+

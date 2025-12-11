@@ -1,0 +1,33 @@
+version: '3.8'
+
+# VPanel 官网部署
+# 部署目录: /opt/vpanel-docs
+# 
+# 使用方式:
+#   1. 上传此文件到 /opt/vpanel-docs/docker-compose.yml
+#   2. 创建 html 目录: mkdir -p /opt/vpanel-docs/html
+#   3. 启动: docker compose up -d
+#   4. GitHub Actions 会自动更新 html 目录内容
+#
+# 外部 Nginx 配置示例见 nginx.conf
+
+services:
+  docs:
+    image: nginx:alpine
+    container_name: vpanel-docs
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3080:80"
+    volumes:
+      - ./html:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

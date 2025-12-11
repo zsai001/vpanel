@@ -1,0 +1,270 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+env:
+  GO_VERSION: '1.21'
+  NODE_VERSION: '20'
+
+jobs:
+  # 构建服务端和 Agent
+  build:
+    name: Build Binaries
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Get version
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Build Server (Linux amd64)
+        run: |
+          cd server
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+            -ldflags "-s -w -X main.Version=${{ steps.version.outputs.VERSION }}" \
+            -o ../bin/vpanel-server-linux-amd64 ./cmd/server
+
+      - name: Build Server (Linux arm64)
+        run: |
+          cd server
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build \
+            -ldflags "-s -w -X main.Version=${{ steps.version.outputs.VERSION }}" \
+            -o ../bin/vpanel-server-linux-arm64 ./cmd/server
+
+      - name: Build Agent (Linux amd64)
+        run: |
+          cd agent
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+            -ldflags "-s -w -X main.Version=${{ steps.version.outputs.VERSION }}" \
+            -o ../bin/vpanel-agent-linux-amd64 ./cmd/agent
+
+      - name: Build Agent (Linux arm64)
+        run: |
+          cd agent
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build \
+            -ldflags "-s -w -X main.Version=${{ steps.version.outputs.VERSION }}" \
+            -o ../bin/vpanel-agent-linux-arm64 ./cmd/agent
+
+      - name: Build Agent (macOS amd64)
+        run: |
+          cd agent
+          CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build \
+            -ldflags "-s -w -X main.Version=${{ steps.version.outputs.VERSION }}" \
+            -o ../bin/vpanel-agent-darwin-amd64 ./cmd/agent
+
+      - name: Build Agent (macOS arm64)
+        run: |
+          cd agent
+          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build \
+            -ldflags "-s -w -X main.Version=${{ steps.version.outputs.VERSION }}" \
+            -o ../bin/vpanel-agent-darwin-arm64 ./cmd/agent
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Build Web Frontend
+        run: |
+          cd web
+          npm ci
+          npm run build
+
+      - name: Package releases
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }}
+          mkdir -p releases
+          
+          # Linux amd64
+          mkdir -p vpanel-${VERSION}-linux-amd64
+          cp bin/vpanel-server-linux-amd64 vpanel-${VERSION}-linux-amd64/vpanel-server
+          cp bin/vpanel-agent-linux-amd64 vpanel-${VERSION}-linux-amd64/vpanel-agent
+          cp -r web/dist vpanel-${VERSION}-linux-amd64/web
+          cp scripts/install.sh vpanel-${VERSION}-linux-amd64/
+          cp deploy/docker/config.yaml vpanel-${VERSION}-linux-amd64/config.example.yaml
+          tar -czvf releases/vpanel-${VERSION}-linux-amd64.tar.gz vpanel-${VERSION}-linux-amd64
+          
+          # Linux arm64
+          mkdir -p vpanel-${VERSION}-linux-arm64
+          cp bin/vpanel-server-linux-arm64 vpanel-${VERSION}-linux-arm64/vpanel-server
+          cp bin/vpanel-agent-linux-arm64 vpanel-${VERSION}-linux-arm64/vpanel-agent
+          cp -r web/dist vpanel-${VERSION}-linux-arm64/web
+          cp scripts/install.sh vpanel-${VERSION}-linux-arm64/
+          cp deploy/docker/config.yaml vpanel-${VERSION}-linux-arm64/config.example.yaml
+          tar -czvf releases/vpanel-${VERSION}-linux-arm64.tar.gz vpanel-${VERSION}-linux-arm64
+          
+          # Agent only packages
+          tar -czvf releases/vpanel-agent-${VERSION}-linux-amd64.tar.gz -C bin vpanel-agent-linux-amd64
+          tar -czvf releases/vpanel-agent-${VERSION}-linux-arm64.tar.gz -C bin vpanel-agent-linux-arm64
+          tar -czvf releases/vpanel-agent-${VERSION}-darwin-amd64.tar.gz -C bin vpanel-agent-darwin-amd64
+          tar -czvf releases/vpanel-agent-${VERSION}-darwin-arm64.tar.gz -C bin vpanel-agent-darwin-arm64
+          
+          # Generate checksums
+          cd releases
+          sha256sum *.tar.gz > checksums.txt
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: releases
+          path: releases/
+
+  # 构建 Docker 镜像
+  docker:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: releases
+          path: releases/
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Get version
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: deploy/docker/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            vpanel/vpanel:${{ steps.version.outputs.VERSION }}
+            vpanel/vpanel:latest
+
+  # 构建官网
+  docs:
+    name: Build Docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Get version
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Build docs
+        run: |
+          cd docs
+          npm ci
+          npm run build
+        env:
+          VITE_VERSION: ${{ steps.version.outputs.VERSION }}
+
+      - name: Upload docs artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs
+          path: docs/.vitepress/dist/
+
+  # 创建 GitHub Release
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [build, docker, docs]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download releases
+        uses: actions/download-artifact@v4
+        with:
+          name: releases
+          path: releases/
+
+      - name: Download docs
+        uses: actions/download-artifact@v4
+        with:
+          name: docs
+          path: docs-dist/
+
+      - name: Package docs
+        run: |
+          tar -czvf releases/vpanel-docs.tar.gz -C docs-dist .
+
+      - name: Get version
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: VPanel ${{ steps.version.outputs.VERSION }}
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.VERSION, 'alpha') || contains(steps.version.outputs.VERSION, 'beta') || contains(steps.version.outputs.VERSION, 'rc') }}
+          generate_release_notes: true
+          files: |
+            releases/*.tar.gz
+            releases/checksums.txt
+
+  # 部署官网到服务器
+  deploy-docs:
+    name: Deploy Docs
+    runs-on: ubuntu-latest
+    needs: docs
+    steps:
+      - name: Download docs
+        uses: actions/download-artifact@v4
+        with:
+          name: docs
+          path: docs-dist/
+
+      - name: Deploy to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_KEY }}
+          source: "docs-dist/*"
+          target: "/opt/vpanel-docs/html"
+          strip_components: 1
+
+      - name: Restart docs container
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_KEY }}
+          script: |
+            cd /opt/vpanel-docs
+            docker compose restart || docker compose up -d
