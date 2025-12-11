@@ -6,7 +6,20 @@
 
 ---
 
-## v1.0.0 <Badge type="tip" text="最新" /> {#v1.0.0}
+## v1.0.1 <Badge type="tip" text="最新" /> {#v1.0.1}
+
+<div class="changelog-meta">
+  <span class="date">📅 2025-12-11</span>
+</div>
+
+### 🔧 维护更新
+
+- 测试发布流程
+- 文档更新
+
+---
+
+## v1.0.0 {#v1.0.0}
 
 <div class="changelog-meta">
   <span class="date">📅 2024-12-11</span>
