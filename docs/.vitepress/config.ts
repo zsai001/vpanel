@@ -4,6 +4,8 @@ export default defineConfig({
   title: 'VPanel',
   description: '新一代智能服务器运维管理平台',
   lang: 'zh-CN',
+  base: '/docs/',
+  ignoreDeadLinks: true,
   
   head: [
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }],
@@ -26,9 +28,9 @@ export default defineConfig({
       {
         text: '社区',
         items: [
-          { text: 'GitHub', link: 'https://github.com/zsoft-vpanel/vpanel' },
-          { text: '问题反馈', link: 'https://github.com/zsoft-vpanel/vpanel/issues' },
-          { text: '讨论区', link: 'https://github.com/zsoft-vpanel/vpanel/discussions' },
+          { text: 'GitHub', link: 'https://github.com/zsai001/vpanel' },
+          { text: '问题反馈', link: 'https://github.com/zsai001/vpanel/issues' },
+          { text: '讨论区', link: 'https://github.com/zsai001/vpanel/discussions' },
         ]
       }
     ],
@@ -66,7 +68,7 @@ export default defineConfig({
     },
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/zsoft-vpanel/vpanel' }
+      { icon: 'github', link: 'https://github.com/zsai001/vpanel' }
     ],
 
     footer: {
@@ -95,7 +97,7 @@ export default defineConfig({
     },
 
     editLink: {
-      pattern: 'https://github.com/zsoft-vpanel/vpanel/edit/main/docs/:path',
+      pattern: 'https://github.com/zsai001/vpanel/edit/main/docs/:path',
       text: '在 GitHub 上编辑此页面'
     },
 

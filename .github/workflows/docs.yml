@@ -1,0 +1,44 @@
+name: Build and Deploy Docs
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy Docs to VCloud
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout vpanel
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Build docs
+        run: |
+          cd docs
+          npm install
+          npm run build
+
+      - name: Deploy to vcloud
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          personal_token: ${{ secrets.VCLOUD_DEPLOY_TOKEN }}
+          external_repository: zsai001/vcloud
+          publish_branch: docs-vpanel
+          publish_dir: ./docs/.vitepress/dist
+          destination_dir: ./
+          commit_message: 'docs(vpanel): update docs from vpanel repo'
