@@ -16,6 +16,7 @@
 
 <div align="center">
   <img src="docs/public/show.png" alt="VPanel Screenshot" />
+  <img src="docs/public/show2.png" alt="VPanel Screenshot 2" />
 </div>
 
 ## ✨ Core Features
