@@ -17,7 +17,7 @@
     "@xterm/xterm": "^5.5.0",
     "axios": "^1.6.5",
     "clsx": "^2.1.0",
-    "date-fns": "^3.2.0",
+    "date-fns": "^4.1.0",
     "framer-motion": "^10.18.0",
     "i18next": "^23.7.16",
     "lucide-react": "^0.309.0",
