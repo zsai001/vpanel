@@ -14,6 +14,10 @@
   ╚═══╝  ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═══╝╚══════╝╚══════╝
 ```
 
+<div align="center">
+  <img src="docs/public/show.png" alt="VPanel Screenshot" />
+</div>
+
 ## ✨ Core Features
 
 ### 🔌 Plugin Architecture
