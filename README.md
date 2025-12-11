@@ -14,7 +14,6 @@
   <p><strong>Next-Generation Intelligent Server Operations Management Platform</strong></p>
 </div>
 
----
 
 ## ✨ Core Features
 
@@ -103,7 +102,6 @@ cd server && go run ./cmd/server
 cd web && npm install && npm run dev
 ```
 
----
 
 ## 📦 Plugin Development
 
@@ -145,7 +143,6 @@ func main() {
 }
 ```
 
----
 
 ## 🔒 Security Features
 
@@ -156,16 +153,14 @@ func main() {
 - **Encrypted Storage** - Sensitive data encryption
 - **Automatic Security Updates** - Automatic vulnerability fixes
 
----
 
 ## 📄 License
 
 Apache License 2.0
 
----
+
 
 <div align="center">
   <p>Made with ❤️ by VPanel Team</p>
 </div>
 
-# vpanel
