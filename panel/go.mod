@@ -3,7 +3,7 @@ module github.com/vpanel/server
 go 1.22
 
 require (
-	github.com/creack/pty v1.1.21
+	github.com/creack/pty v1.1.24
 	github.com/docker/docker v24.0.7+incompatible
 	github.com/gin-gonic/gin v1.9.1
 	github.com/golang-jwt/jwt/v5 v5.2.0
