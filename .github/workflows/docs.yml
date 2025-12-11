@@ -9,14 +9,14 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 env:
   NODE_VERSION: '20'
 
 jobs:
   build-and-deploy:
-    name: Build and Deploy Docs to VCloud
+    name: Build and Deploy Docs
     runs-on: ubuntu-latest
     steps:
       - name: Checkout vpanel
@@ -33,12 +33,11 @@ jobs:
           npm install
           npm run build
 
-      - name: Deploy to vcloud
+      # 部署到本仓库的 gh-pages 分支 (用于在线文档预览)
+      # 正式发布时，文档会作为 release asset 由 vcloud bundle 获取
+      - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v4
         with:
-          personal_token: ${{ secrets.VCLOUD_DEPLOY_TOKEN }}
-          external_repository: zsai001/vcloud
-          publish_branch: docs-vpanel
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs/.vitepress/dist
-          destination_dir: ./
-          commit_message: 'docs(vpanel): update docs from vpanel repo'
+          commit_message: 'docs: update documentation'
