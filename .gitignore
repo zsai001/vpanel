@@ -19,7 +19,7 @@ dist/
 
 # Logs
 *.log
-logs/
+/logs/
 
 # Data
 data/
