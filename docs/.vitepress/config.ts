@@ -5,11 +5,14 @@ export default defineConfig({
   description: '新一代智能服务器运维管理平台',
   lang: 'zh-CN',
   
+  // 部署在 /docs/ 子路径下
+  base: '/docs/',
+  
   // 忽略死链接，允许文档逐步完善
   ignoreDeadLinks: true,
   
   head: [
-    ['link', { rel: 'icon', href: '/logo.svg' }],
+    ['link', { rel: 'icon', href: '/docs/logo.svg' }],
   ],
 
   themeConfig: {
