@@ -179,26 +179,6 @@ generate() {
     log_success "Code generation completed"
 }
 
-# Docker 相关
-docker_build() {
-    log_info "Building Docker image..."
-    docker build -t vpanel/vpanel:${VERSION} -f deploy/docker/Dockerfile .
-    docker tag vpanel/vpanel:${VERSION} vpanel/vpanel:latest
-    log_success "Docker image built: vpanel/vpanel:${VERSION}"
-}
-
-docker_run() {
-    log_info "Starting with Docker Compose..."
-    docker-compose -f deploy/docker/docker-compose.yml up -d
-    log_success "Docker containers started"
-}
-
-docker_stop() {
-    log_info "Stopping Docker containers..."
-    docker-compose -f deploy/docker/docker-compose.yml down
-    log_success "Docker containers stopped"
-}
-
 # 跨平台构建
 build_linux() {
     log_info "Building for Linux..."
@@ -251,11 +231,6 @@ show_help() {
     echo "  test          运行测试"
     echo "  test:cov      运行测试并生成覆盖率报告"
     echo "  lint          运行代码检查"
-    echo ""
-    echo "Docker 命令:"
-    echo "  docker:build  构建 Docker 镜像"
-    echo "  docker:run    使用 Docker Compose 启动"
-    echo "  docker:stop   停止 Docker 容器"
     echo ""
     echo "其他命令:"
     echo "  deps          安装依赖"
@@ -310,15 +285,6 @@ case "${1:-help}" in
         ;;
     lint)
         lint
-        ;;
-    docker:build)
-        docker_build
-        ;;
-    docker:run)
-        docker_run
-        ;;
-    docker:stop)
-        docker_stop
         ;;
     deps)
         deps

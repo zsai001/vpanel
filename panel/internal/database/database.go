@@ -61,9 +61,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.OAuthConnection{},
 		&models.LoginAttempt{},
 
-		// Node & Agent
-		&models.Node{},
-		&models.NodeMetrics{},
+		// Node & Agent (removed in community edition)
 
 		// Docker
 		&models.DockerComposeProject{},

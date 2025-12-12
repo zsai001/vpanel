@@ -412,8 +412,9 @@ func setupRoutes(r *gin.Engine, h *handlers.Handler, svc *services.Container, pm
 		ws.GET("/monitor", h.Monitor.RealtimeWS)
 	}
 
-	// Agent WebSocket
-	r.GET("/ws/agent", h.Agent.WebSocket)
+	// Agent WebSocket (Enterprise Edition)
+	// Multi-node agent support is available in VPanel Cloud
+	// See: https://github.com/zsoft-vpanel/vpanel-cloud
 }
 
 func setupStatic(r *gin.Engine, webDir string) {

@@ -22,8 +22,8 @@
   color-scheme: dark;
 }
 
-html {
-  @apply dark;
+html.dark {
+  /* Dark mode is enabled via class on HTML element */
 }
 
 /* ========================================

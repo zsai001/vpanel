@@ -352,3 +352,5 @@ func (s *MonitorService) GetNetworkInterfaces() ([]NetworkInterface, error) {
 	return result, nil
 }
 
+
+
