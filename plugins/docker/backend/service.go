@@ -9,6 +9,7 @@ import (
 
 	"github.com/docker/docker/api/types"
 	containertypes "github.com/docker/docker/api/types/container"
+	imagetypes "github.com/docker/docker/api/types/image"
 	networktypes "github.com/docker/docker/api/types/network"
 	volumetypes "github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
@@ -83,7 +84,7 @@ func (s *Service) ListContainers(ctx context.Context, all bool) ([]ContainerInfo
 		return nil, ErrDockerNotConnected
 	}
 
-	containers, err := s.client.ContainerList(ctx, types.ContainerListOptions{All: all})
+	containers, err := s.client.ContainerList(ctx, containertypes.ListOptions{All: all})
 	if err != nil {
 		return nil, err
 	}
@@ -193,7 +194,7 @@ func (s *Service) CreateContainer(ctx context.Context, req *CreateContainerReque
 		Binds:        req.Volumes,
 	}
 	if req.Restart != "" {
-		hostConfig.RestartPolicy = containertypes.RestartPolicy{Name: req.Restart}
+		hostConfig.RestartPolicy = containertypes.RestartPolicy{Name: containertypes.RestartPolicyMode(req.Restart)}
 	}
 
 	networkConfig := &networktypes.NetworkingConfig{}
@@ -216,7 +217,7 @@ func (s *Service) StartContainer(ctx context.Context, id string) error {
 	if s.client == nil {
 		return ErrDockerNotConnected
 	}
-	return s.client.ContainerStart(ctx, id, types.ContainerStartOptions{})
+	return s.client.ContainerStart(ctx, id, containertypes.StartOptions{})
 }
 
 // StopContainer stops a container
@@ -242,7 +243,7 @@ func (s *Service) RemoveContainer(ctx context.Context, id string, force bool) er
 	if s.client == nil {
 		return ErrDockerNotConnected
 	}
-	return s.client.ContainerRemove(ctx, id, types.ContainerRemoveOptions{Force: force})
+	return s.client.ContainerRemove(ctx, id, containertypes.RemoveOptions{Force: force})
 }
 
 // GetContainerLogs returns container logs
@@ -251,7 +252,7 @@ func (s *Service) GetContainerLogs(ctx context.Context, id string, tail int) (st
 		return "", ErrDockerNotConnected
 	}
 
-	options := types.ContainerLogsOptions{
+	options := containertypes.LogsOptions{
 		ShowStdout: true,
 		ShowStderr: true,
 		Tail:       fmt.Sprintf("%d", tail),
@@ -274,7 +275,7 @@ func (s *Service) ListImages(ctx context.Context) ([]ImageInfo, error) {
 		return nil, ErrDockerNotConnected
 	}
 
-	images, err := s.client.ImageList(ctx, types.ImageListOptions{})
+	images, err := s.client.ImageList(ctx, imagetypes.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -298,7 +299,7 @@ func (s *Service) PullImage(ctx context.Context, imageName string) error {
 		return ErrDockerNotConnected
 	}
 
-	reader, err := s.client.ImagePull(ctx, imageName, types.ImagePullOptions{})
+	reader, err := s.client.ImagePull(ctx, imageName, imagetypes.PullOptions{})
 	if err != nil {
 		return err
 	}
@@ -322,7 +323,7 @@ func (s *Service) RemoveImage(ctx context.Context, id string, force bool) error 
 		return ErrDockerNotConnected
 	}
 
-	_, err := s.client.ImageRemove(ctx, id, types.ImageRemoveOptions{Force: force})
+	_, err := s.client.ImageRemove(ctx, id, imagetypes.RemoveOptions{Force: force})
 	return err
 }
 
@@ -332,7 +333,7 @@ func (s *Service) ListNetworks(ctx context.Context) ([]NetworkInfo, error) {
 		return nil, ErrDockerNotConnected
 	}
 
-	networks, err := s.client.NetworkList(ctx, types.NetworkListOptions{})
+	networks, err := s.client.NetworkList(ctx, networktypes.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -357,7 +358,7 @@ func (s *Service) CreateNetwork(ctx context.Context, name, driver string) (strin
 		return "", ErrDockerNotConnected
 	}
 
-	resp, err := s.client.NetworkCreate(ctx, name, types.NetworkCreate{Driver: driver})
+	resp, err := s.client.NetworkCreate(ctx, name, networktypes.CreateOptions{Driver: driver})
 	if err != nil {
 		return "", err
 	}
