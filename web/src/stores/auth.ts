@@ -29,6 +29,9 @@ interface AuthState {
   checkAuth: () => Promise<boolean>;
 }
 
+// Prevent concurrent refresh attempts
+let refreshPromise: Promise<void> | null = null;
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -53,6 +56,22 @@ export const useAuthStore = create<AuthState>()(
 
           if (!response.ok) {
             throw new Error(data.error?.message || data.message || 'Login failed');
+          }
+
+          // Handle MFA required case (HTTP 200 but success: false)
+          if (data.mfa_required) {
+            set({ isLoading: false });
+            throw new Error('MFA_REQUIRED');
+          }
+
+          // Check for success flag
+          if (!data.success) {
+            throw new Error(data.message || 'Login failed');
+          }
+
+          // Ensure user data exists
+          if (!data.user) {
+            throw new Error('Invalid response: missing user data');
           }
 
           set({
@@ -93,32 +112,48 @@ export const useAuthStore = create<AuthState>()(
       },
 
       refreshAuth: async () => {
-        const refreshToken = get().refreshToken;
-        if (!refreshToken) {
+        // If a refresh is already in progress, wait for it
+        if (refreshPromise) {
+          return refreshPromise;
+        }
+
+        const currentRefreshToken = get().refreshToken;
+        if (!currentRefreshToken) {
           get().logout();
           return;
         }
 
-        try {
-          const response = await fetch('/api/auth/refresh', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ refresh_token: refreshToken }),
-          });
+        // Create the refresh promise
+        refreshPromise = (async () => {
+          try {
+            const response = await fetch('/api/auth/refresh', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ refresh_token: currentRefreshToken }),
+            });
 
-          const data = await response.json();
+            const data = await response.json();
 
-          if (!response.ok) {
-            throw new Error('Token refresh failed');
+            if (!response.ok) {
+              throw new Error('Token refresh failed');
+            }
+
+            if (!data.success) {
+              throw new Error('Token refresh failed');
+            }
+
+            set({
+              token: data.token,
+              refreshToken: data.refresh_token,
+            });
+          } catch {
+            get().logout();
+          } finally {
+            refreshPromise = null;
           }
+        })();
 
-          set({
-            token: data.token,
-            refreshToken: data.refresh_token,
-          });
-        } catch {
-          get().logout();
-        }
+        return refreshPromise;
       },
 
       checkAuth: async () => {
@@ -142,6 +177,9 @@ export const useAuthStore = create<AuthState>()(
           }
 
           const data = await response.json();
+          if (!data.success || !data.data) {
+            return false;
+          }
           set({ user: data.data, isAuthenticated: true });
           return true;
         } catch {

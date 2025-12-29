@@ -1,0 +1,140 @@
+name: Deploy to Dev Server
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install Go dependencies
+        run: |
+          cd core && go mod download
+          cd ../plugins && go mod download
+          cd ../sdk/go && go mod download
+
+      - name: Build backend
+        run: |
+          VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "dev-$(git rev-parse --short HEAD)")
+          BUILD_TIME=$(date -u '+%Y-%m-%d_%H:%M:%S')
+          GIT_COMMIT=$(git rev-parse --short HEAD)
+          LDFLAGS="-s -w -X main.Version=${VERSION} -X main.BuildTime=${BUILD_TIME} -X main.GitCommit=${GIT_COMMIT}"
+          cd core && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o ../bin/vpanel-server ./cmd/server
+
+      - name: Install frontend dependencies
+        run: |
+          cd web && npm ci
+
+      - name: Build frontend
+        run: |
+          cd web && npm run build
+
+      - name: Prepare deployment package
+        run: |
+          mkdir -p deploy-package
+          cp bin/vpanel-server deploy-package/
+          cp -r web/dist deploy-package/web
+          # Note: config.yaml should not be included as it should be preserved on server
+          tar -czf deploy-package.tar.gz deploy-package/
+
+      - name: Deploy to server
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/vpanel' }}
+        run: |
+          # Setup SSH
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H $SSH_HOST >> ~/.ssh/known_hosts || true
+          
+          # Upload deployment package
+          scp -i ~/.ssh/deploy_key deploy-package.tar.gz $SSH_USER@$SSH_HOST:/tmp/vpanel-deploy.tar.gz
+          
+          # Deploy and restart service
+          ssh -i ~/.ssh/deploy_key $SSH_USER@$SSH_HOST "DEPLOY_PATH='$DEPLOY_PATH' bash -s" << 'ENDSSH'
+            set -e
+            
+            DEPLOY_PATH="${DEPLOY_PATH:-/opt/vpanel}"
+            BACKUP_DIR="${DEPLOY_PATH}/backups"
+            TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+            
+            echo "Creating backup..."
+            mkdir -p "$BACKUP_DIR"
+            if [ -f "$DEPLOY_PATH/vpanel-server" ]; then
+              tar -czf "$BACKUP_DIR/vpanel-backup-${TIMESTAMP}.tar.gz" -C "$DEPLOY_PATH" vpanel-server web 2>/dev/null || true
+            fi
+            
+            echo "Stopping service..."
+            systemctl stop vpanel 2>/dev/null || true
+            
+            echo "Extracting deployment package..."
+            mkdir -p "$DEPLOY_PATH"
+            cd /tmp
+            tar -xzf /tmp/vpanel-deploy.tar.gz
+            
+            echo "Deploying files..."
+            # Deploy vpanel-server binary
+            cp -f deploy-package/vpanel-server "$DEPLOY_PATH/vpanel-server"
+            chmod +x "$DEPLOY_PATH/vpanel-server"
+            
+            # Deploy web frontend
+            if [ -d "deploy-package/web" ]; then
+              rm -rf "$DEPLOY_PATH/web"
+              cp -r deploy-package/web "$DEPLOY_PATH/web"
+            fi
+            
+            # Set ownership (same as install script)
+            chown -R root:root "$DEPLOY_PATH/vpanel-server" "$DEPLOY_PATH/web" 2>/dev/null || true
+            
+            # Cleanup temporary files
+            rm -rf deploy-package
+            rm -f /tmp/vpanel-deploy.tar.gz
+            
+            echo "Starting service..."
+            systemctl daemon-reload
+            systemctl enable vpanel 2>/dev/null || true
+            systemctl start vpanel
+            
+            echo "Waiting for service to start..."
+            sleep 2
+            
+            if systemctl is-active --quiet vpanel; then
+              echo "✓ Deployment successful! Service is running."
+              systemctl status vpanel --no-pager -l
+            else
+              echo "✗ Service failed to start. Showing logs:"
+              journalctl -u vpanel -n 50 --no-pager
+              exit 1
+            fi
+          ENDSSH
+          
+          # Cleanup
+          rm -f ~/.ssh/deploy_key
+
+      - name: Deployment summary
+        if: success()
+        run: |
+          echo "✓ Deployment completed successfully!"
+          echo "Service should be running on the server."
+
