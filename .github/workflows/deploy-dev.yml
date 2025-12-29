@@ -65,7 +65,6 @@ jobs:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/vpanel' }}
         run: |
           # Setup SSH
           mkdir -p ~/.ssh
@@ -77,40 +76,42 @@ jobs:
           scp -i ~/.ssh/deploy_key deploy-package.tar.gz $SSH_USER@$SSH_HOST:/tmp/vpanel-deploy.tar.gz
           
           # Deploy and restart service
-          ssh -i ~/.ssh/deploy_key $SSH_USER@$SSH_HOST "DEPLOY_PATH='$DEPLOY_PATH' bash -s" << 'ENDSSH'
+          ssh -i ~/.ssh/deploy_key $SSH_USER@$SSH_HOST "bash -s" << 'ENDSSH'
             set -e
             
-            DEPLOY_PATH="${DEPLOY_PATH:-/opt/vpanel}"
-            BACKUP_DIR="${DEPLOY_PATH}/backups"
+            # Deployment paths
+            BIN_PATH="/usr/local/bin"
+            WEB_PATH="/var/lib/vpanel/web"
+            BACKUP_DIR="/var/lib/vpanel/backups"
             TIMESTAMP=$(date +%Y%m%d_%H%M%S)
             
             echo "Creating backup..."
             mkdir -p "$BACKUP_DIR"
-            if [ -f "$DEPLOY_PATH/vpanel-server" ]; then
-              tar -czf "$BACKUP_DIR/vpanel-backup-${TIMESTAMP}.tar.gz" -C "$DEPLOY_PATH" vpanel-server web 2>/dev/null || true
+            if [ -f "$BIN_PATH/vpanel-server" ]; then
+              cp "$BIN_PATH/vpanel-server" "$BACKUP_DIR/vpanel-server-${TIMESTAMP}" 2>/dev/null || true
             fi
             
             echo "Stopping service..."
             systemctl stop vpanel 2>/dev/null || true
             
             echo "Extracting deployment package..."
-            mkdir -p "$DEPLOY_PATH"
             cd /tmp
             tar -xzf /tmp/vpanel-deploy.tar.gz
             
-            echo "Deploying files..."
-            # Deploy vpanel-server binary
-            cp -f deploy-package/vpanel-server "$DEPLOY_PATH/vpanel-server"
-            chmod +x "$DEPLOY_PATH/vpanel-server"
+            echo "Deploying binary to $BIN_PATH..."
+            cp -f deploy-package/vpanel-server "$BIN_PATH/vpanel-server"
+            chmod +x "$BIN_PATH/vpanel-server"
             
-            # Deploy web frontend
+            echo "Deploying web frontend to $WEB_PATH..."
             if [ -d "deploy-package/web" ]; then
-              rm -rf "$DEPLOY_PATH/web"
-              cp -r deploy-package/web "$DEPLOY_PATH/web"
+              mkdir -p "$WEB_PATH"
+              rm -rf "$WEB_PATH"/*
+              cp -r deploy-package/web/* "$WEB_PATH/"
             fi
             
-            # Set ownership (same as install script)
-            chown -R root:root "$DEPLOY_PATH/vpanel-server" "$DEPLOY_PATH/web" 2>/dev/null || true
+            # Set ownership
+            chown root:root "$BIN_PATH/vpanel-server"
+            chown -R root:root "$WEB_PATH" 2>/dev/null || true
             
             # Cleanup temporary files
             rm -rf deploy-package
@@ -122,7 +123,7 @@ jobs:
             systemctl start vpanel
             
             echo "Waiting for service to start..."
-            sleep 2
+            sleep 3
             
             if systemctl is-active --quiet vpanel; then
               echo "✓ Deployment successful! Service is running."
