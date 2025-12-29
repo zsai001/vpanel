@@ -44,6 +44,11 @@ jobs:
           cd web && npm ci
 
       - name: Build frontend
+        env:
+          VITE_APP_VERSION: ${{ github.sha }}
+          VITE_GIT_COMMIT: ${{ github.sha }}
+          VITE_GIT_BRANCH: dev
+          VITE_BUILD_TIME: ${{ github.event.head_commit.timestamp }}
         run: |
           cd web && npm run build
 

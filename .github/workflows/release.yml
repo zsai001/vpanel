@@ -71,6 +71,11 @@ jobs:
           npm ci
 
       - name: Build Web Frontend
+        env:
+          VITE_APP_VERSION: ${{ steps.version.outputs.VERSION }}
+          VITE_GIT_COMMIT: ${{ github.sha }}
+          VITE_GIT_BRANCH: ${{ github.ref_name }}
+          VITE_BUILD_TIME: ${{ github.event.head_commit.timestamp }}
         run: |
           cd web
           npm run build
