@@ -87,3 +87,51 @@ type CreateContainerRequest struct {
 	Command     []string          `json:"command"`
 	Restart     string            `json:"restart"`
 }
+
+// ComposeProjectInfo represents a detected or registered compose project
+type ComposeProjectInfo struct {
+	ID             string               `json:"id"`
+	Name           string               `json:"name"`
+	Path           string               `json:"path"`
+	ConfigFiles    string               `json:"config_files,omitempty"`
+	Description    string               `json:"description,omitempty"`
+	Status         string               `json:"status"` // running, stopped, partial
+	ContainerCount int                  `json:"container_count"`
+	RunningCount   int                  `json:"running_count"`
+	StoppedCount   int                  `json:"stopped_count"`
+	Services       []ComposeServiceInfo `json:"services"`
+	CreatedAt      string               `json:"created_at"`
+	UpdatedAt      string               `json:"updated_at"`
+	IsAutoDetected bool                 `json:"is_auto_detected"`
+}
+
+// ComposeServiceInfo represents a service within a compose project
+type ComposeServiceInfo struct {
+	Name            string   `json:"name"`
+	ContainerID     string   `json:"container_id"`
+	ContainerName   string   `json:"container_name"`
+	ContainerNumber string   `json:"container_number,omitempty"`
+	Image           string   `json:"image"`
+	State           string   `json:"state"`
+	Status          string   `json:"status"`
+	Ports           []string `json:"ports"`
+}
+
+// ContainerGroup represents a group of containers (by compose project or status)
+type ContainerGroup struct {
+	Type        string          `json:"type"`        // "compose" or "standalone" or "status"
+	Name        string          `json:"name"`        // Project name or status name
+	Path        string          `json:"path,omitempty"`
+	Status      string          `json:"status"`      // overall status: running, stopped, partial
+	Count       int             `json:"count"`      // total containers
+	Running     int             `json:"running"`    // running containers
+	Stopped     int             `json:"stopped"`    // stopped containers
+	Containers  []ContainerInfo `json:"containers"`
+	IsCompose   bool            `json:"is_compose"`
+}
+
+// GroupedContainersResponse represents grouped containers response
+type GroupedContainersResponse struct {
+	Groups    []ContainerGroup `json:"groups"`
+	Standalone []ContainerInfo  `json:"standalone"` // containers not in any compose project
+}

@@ -131,7 +131,7 @@ pluginRegistry.register({
   ],
 });
 
-// Docker Plugin
+// Docker Plugin - uses internal routing
 pluginRegistry.register({
   id: 'docker',
   name: 'Docker',
@@ -140,29 +140,10 @@ pluginRegistry.register({
   enabled: true,
   routes: [
     {
-      path: '/docker/containers',
-      component: lazy(() => import('@plugins/docker/frontend/pages/Containers')),
-      title: 'Containers',
-    },
-    {
-      path: '/docker/images',
-      component: lazy(() => import('@plugins/docker/frontend/pages/Images')),
-      title: 'Images',
-    },
-    {
-      path: '/docker/networks',
-      component: lazy(() => import('@plugins/docker/frontend/pages/Networks')),
-      title: 'Networks',
-    },
-    {
-      path: '/docker/volumes',
-      component: lazy(() => import('@plugins/docker/frontend/pages/Volumes')),
-      title: 'Volumes',
-    },
-    {
-      path: '/docker/compose',
-      component: lazy(() => import('@plugins/docker/frontend/pages/Compose')),
-      title: 'Compose',
+      // Single wildcard route - plugin handles all sub-routes internally
+      path: '/docker/*',
+      component: lazy(() => import('@plugins/docker/frontend/routes')),
+      title: 'Docker',
     },
   ],
   menuItems: [

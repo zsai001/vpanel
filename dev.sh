@@ -80,19 +80,29 @@ build_all() {
     print_build_info
 }
 
-# 清理端口占用
+# 清理端口占用 (排除 OrbStack 进程)
 cleanup_port() {
-    local port=$1
-    if [ -z "$port" ]; then
-        port=8080
-    fi
+    # local port=$1
+    # if [ -z "$port" ]; then
+    #     port=8080
+    # fi
     
-    local pids=$(lsof -ti:$port 2>/dev/null)
-    if [ -n "$pids" ]; then
-        log_info "Killing processes on port $port..."
-        echo "$pids" | xargs kill -9 2>/dev/null
-        sleep 1
-    fi
+    # # 只杀死 VPanel 相关进程，排除 OrbStack/Docker 的端口转发
+    # local pids=""
+    # for pid in $(lsof -ti:$port 2>/dev/null); do
+    #     local pname=$(ps -p $pid -o comm= 2>/dev/null)
+    #     # 排除 OrbStack/Docker 相关进程
+    #     if [[ ! "$pname" =~ (orbstack|orb|docker|vpnkit|com\.apple|com\.docker) ]]; then
+    #         pids="$pids $pid"
+    #     fi
+    # done
+    
+    # if [ -n "$pids" ]; then
+    #     log_info "Killing processes on port $port..."
+    #     echo "$pids" | xargs kill -9 2>/dev/null
+    #     sleep 1
+    # fi
+    echo "Cleanup port not implemented"
 }
 
 # 开发模式 - 启动 server

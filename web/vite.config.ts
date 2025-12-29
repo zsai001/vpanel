@@ -49,8 +49,14 @@ export default defineConfig({
   server: {
     port: 3000,
     proxy: {
-      // WebSocket proxy only for terminal (the only real WS endpoint)
+      // WebSocket proxy for terminal
       '/api/terminal/ws': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        ws: true,
+      },
+      // WebSocket proxy for Docker container exec
+      '/api/docker/containers': {
         target: 'http://localhost:8080',
         changeOrigin: true,
         ws: true,

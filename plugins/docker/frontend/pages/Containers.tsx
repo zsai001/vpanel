@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus,
@@ -15,6 +16,12 @@ import {
   List,
   Info,
   Copy,
+  ChevronDown,
+  ChevronRight,
+  Layers,
+  Folder,
+  FolderOpen,
+  File,
 } from 'lucide-react';
 import {
   Button,
@@ -34,6 +41,7 @@ import {
   Tabs,
   TabList,
   Tab,
+  TabPanel,
   Progress,
   Empty,
   Spinner,
@@ -42,7 +50,7 @@ import {
 import { cn } from '@/utils/cn';
 import toast from 'react-hot-toast';
 import * as dockerApi from '../api/docker';
-import type { Container, CreateContainerRequest } from '../api/docker';
+import type { Container, CreateContainerRequest, ContainerGroup, GroupedContainersResponse } from '../api/docker';
 
 function ContainerCard({ 
   container, 
@@ -94,7 +102,13 @@ function ContainerCard({
             <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
               <Terminal className="w-5 h-5 text-blue-400" />
             </div>
-            <div className="min-w-0 flex-1">
+            <div 
+              className="min-w-0 flex-1 cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/docker/containers/${container.id}`);
+              }}
+            >
               <h3 className="font-medium text-dark-100 truncate">{container.name}</h3>
               <p className="text-sm text-dark-500 truncate">{container.image}</p>
             </div>
@@ -251,14 +265,16 @@ function ContainerCard({
 }
 
 export default function DockerContainers() {
+  const navigate = useNavigate();
   const [containers, setContainers] = useState<Container[]>([]);
+  const [groupedData, setGroupedData] = useState<GroupedContainersResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'table' | 'grouped'>('grouped');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showDetailModal, setShowDetailModal] = useState(false);
   const [showLogsModal, setShowLogsModal] = useState(false);
   const [selectedContainer, setSelectedContainer] = useState<Container | null>(null);
   const [logs, setLogs] = useState<string>('');
@@ -281,16 +297,30 @@ export default function DockerContainers() {
   // Fetch containers
   const fetchContainers = useCallback(async () => {
     try {
-      const data = await dockerApi.listContainers(true);
-      setContainers(data);
+      if (viewMode === 'grouped') {
+        const data = await dockerApi.listContainers(true, true) as GroupedContainersResponse;
+        setGroupedData(data);
+        // Flatten for stats calculation
+        const allContainers: Container[] = [];
+        data.groups.forEach(group => {
+          allContainers.push(...group.containers);
+        });
+        allContainers.push(...data.standalone);
+        setContainers(allContainers);
+      } else {
+        const data = await dockerApi.listContainers(true, false) as Container[];
+        setContainers(data);
+        setGroupedData(null);
+      }
     } catch {
       // Silently handle error when Docker is unavailable
       setContainers([]);
+      setGroupedData(null);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [viewMode]);
 
   useEffect(() => {
     fetchContainers();
@@ -298,6 +328,19 @@ export default function DockerContainers() {
     const interval = setInterval(fetchContainers, 10000);
     return () => clearInterval(interval);
   }, [fetchContainers]);
+
+  // Toggle group expanded state
+  const toggleGroup = (groupName: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupName)) {
+        next.delete(groupName);
+      } else {
+        next.add(groupName);
+      }
+      return next;
+    });
+  };
 
   // Handle container actions
   const handleAction = async (action: string, container: Container) => {
@@ -325,8 +368,8 @@ export default function DockerContainers() {
           await loadLogs(container.id);
           return;
         case 'inspect':
-          setSelectedContainer(container);
-          setShowDetailModal(true);
+        case 'view':
+          navigate(`/docker/containers/${container.id}`);
           return;
         case 'terminal':
           // Navigate to terminal with container context
@@ -353,6 +396,7 @@ export default function DockerContainers() {
       setLogsLoading(false);
     }
   };
+
 
   // Handle create container
   const handleCreate = async () => {
@@ -498,6 +542,14 @@ export default function DockerContainers() {
         </Tabs>
         <div className="flex items-center gap-2">
           <Button
+            variant={viewMode === 'grouped' ? 'primary' : 'ghost'}
+            size="sm"
+            leftIcon={<Layers className="w-4 h-4" />}
+            onClick={() => setViewMode('grouped')}
+          >
+            Grouped
+          </Button>
+          <Button
             variant={viewMode === 'grid' ? 'primary' : 'ghost'}
             size="sm"
             leftIcon={<Grid3x3 className="w-4 h-4" />}
@@ -517,7 +569,374 @@ export default function DockerContainers() {
       </div>
 
       {/* Container List */}
-      {filteredContainers.length > 0 ? (
+      {viewMode === 'grouped' && groupedData ? (
+        groupedData.groups.length > 0 || groupedData.standalone.length > 0 ? (
+          <div className="space-y-2">
+            {/* Compose Groups */}
+            {groupedData.groups
+              .filter((group) => {
+                if (statusFilter === 'all') return true;
+                if (statusFilter === 'running') return group.status === 'running' || group.status === 'partial';
+                if (statusFilter === 'stopped') return group.status === 'stopped';
+                return true;
+              })
+              .filter((group) => {
+                if (!search) return true;
+                const searchLower = search.toLowerCase();
+                return (
+                  group.name.toLowerCase().includes(searchLower) ||
+                  group.path?.toLowerCase().includes(searchLower) ||
+                  group.containers.some(c => 
+                    c.name.toLowerCase().includes(searchLower) ||
+                    c.image.toLowerCase().includes(searchLower)
+                  )
+                );
+              })
+              .map((group) => {
+                const isExpanded = expandedGroups.has(group.name);
+                const statusColors: Record<string, 'success' | 'gray' | 'warning'> = {
+                  running: 'success',
+                  stopped: 'gray',
+                  partial: 'warning',
+                };
+                return (
+                  <React.Fragment key={group.name}>
+                    <motion.div
+                      layout
+                      className="card overflow-hidden"
+                    >
+                      <div
+                        className="flex items-center justify-between p-4 cursor-pointer hover:bg-dark-800/50 transition-colors"
+                        onClick={(e) => {
+                          // Only toggle if clicking on the header, not on child elements
+                          if (e.target === e.currentTarget || (e.target as HTMLElement).closest('.group-header')) {
+                            toggleGroup(group.name);
+                          }
+                        }}
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0 group-header">
+                          <button 
+                            className="p-1 hover:bg-dark-700 rounded transition-colors flex-shrink-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleGroup(group.name);
+                            }}
+                          >
+                            {isExpanded ? (
+                              <ChevronDown className="w-4 h-4 text-dark-400" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4 text-dark-400" />
+                            )}
+                          </button>
+                          <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                            {group.is_compose ? (
+                              <Layers className="w-4 h-4 text-blue-400" />
+                            ) : (
+                              <Folder className="w-4 h-4 text-blue-400" />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-medium text-dark-100 truncate">{group.name}</h3>
+                              {group.is_compose && (
+                                <Badge variant="gray" className="text-xs">Compose</Badge>
+                              )}
+                            </div>
+                            {group.path && (
+                              <p className="text-xs text-dark-500 truncate font-mono">{group.path}</p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-4 flex-shrink-0">
+                            <Badge variant={statusColors[group.status] || 'gray'}>
+                              {group.status}
+                            </Badge>
+                            <span className="text-sm text-dark-400">
+                              <span className="text-green-400">{group.running}</span>
+                              {' / '}
+                              <span>{group.count}</span>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <AnimatePresence>
+                        {isExpanded && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="border-t border-dark-700"
+                          >
+                            <div className="p-4 space-y-2">
+                              {group.containers
+                                .filter((c) => {
+                                  if (!search) return true;
+                                  const searchLower = search.toLowerCase();
+                                  return (
+                                    c.name.toLowerCase().includes(searchLower) ||
+                                    c.image.toLowerCase().includes(searchLower)
+                                  );
+                                })
+                                .map((container) => (
+                                  <div
+                                    key={container.id}
+                                    className="flex items-center justify-between p-3 bg-dark-800/50 rounded-lg hover:bg-dark-800 transition-colors cursor-pointer"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigate(`/docker/containers/${container.id}`);
+                                    }}
+                                  >
+                                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                                      <Terminal className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                                      <div className="min-w-0 flex-1">
+                                        <div className="font-medium text-dark-100 truncate">{container.name}</div>
+                                        <div className="text-xs text-dark-500 truncate">{container.image}</div>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-3 flex-shrink-0">
+                                      {container.ports && container.ports.length > 0 && (
+                                        <div className="flex gap-1">
+                                          {container.ports.slice(0, 2).map((port, idx) => (
+                                            <span
+                                              key={idx}
+                                              className="px-2 py-0.5 bg-dark-700 rounded text-xs text-dark-300 font-mono"
+                                            >
+                                              {port.split('/')[0]}
+                                            </span>
+                                          ))}
+                                          {container.ports.length > 2 && (
+                                            <span className="text-xs text-dark-500">+{container.ports.length - 2}</span>
+                                          )}
+                                        </div>
+                                      )}
+                                      <Badge
+                                        variant={
+                                          container.state === 'running' ? 'success' :
+                                          container.state === 'stopped' || container.state === 'exited' ? 'gray' :
+                                          'warning'
+                                        }
+                                        className="text-xs"
+                                      >
+                                        {container.state}
+                                      </Badge>
+                                      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                        {container.state === 'running' ? (
+                                          <>
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              leftIcon={<Square className="w-3 h-3" />}
+                                              onClick={() => handleAction('stop', container)}
+                                              title="Stop"
+                                            />
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              leftIcon={<RotateCcw className="w-3 h-3" />}
+                                              onClick={() => handleAction('restart', container)}
+                                              title="Restart"
+                                            />
+                                          </>
+                                        ) : (
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            leftIcon={<Play className="w-3 h-3" />}
+                                            onClick={() => handleAction('start', container)}
+                                            title="Start"
+                                          />
+                                        )}
+                                        <Dropdown
+                                          trigger={
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              leftIcon={<MoreVertical className="w-3 h-3" />}
+                                            />
+                                          }
+                                        >
+                                          <DropdownItem
+                                            icon={<FileText className="w-4 h-4" />}
+                                            onClick={() => handleAction('logs', container)}
+                                          >
+                                            View Logs
+                                          </DropdownItem>
+                                          <DropdownItem
+                                            icon={<Info className="w-4 h-4" />}
+                                            onClick={() => handleAction('inspect', container)}
+                                          >
+                                            Inspect
+                                          </DropdownItem>
+                                          <DropdownItem
+                                            icon={<Terminal className="w-4 h-4" />}
+                                            onClick={() => handleAction('terminal', container)}
+                                          >
+                                            Terminal
+                                          </DropdownItem>
+                                          <DropdownDivider />
+                                          <DropdownItem
+                                            icon={<Trash2 className="w-4 h-4" />}
+                                            danger
+                                            onClick={() => handleAction('delete', container)}
+                                          >
+                                            Delete
+                                          </DropdownItem>
+                                        </Dropdown>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
+                  </React.Fragment>
+                );
+              })}
+
+            {/* Standalone Containers */}
+            {groupedData.standalone.length > 0 && (
+              <motion.div
+                layout
+                className="card overflow-hidden"
+              >
+                <div className="p-4 border-b border-dark-700">
+                  <div className="flex items-center gap-2">
+                    <Terminal className="w-4 h-4 text-dark-500" />
+                    <h3 className="font-medium text-dark-100">Standalone Containers</h3>
+                    <Badge variant="gray" className="text-xs">{groupedData.standalone.length}</Badge>
+                  </div>
+                </div>
+                <div className="p-4 space-y-2">
+                  {groupedData.standalone
+                    .filter((c) => {
+                      const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
+                        c.image.toLowerCase().includes(search.toLowerCase());
+                      const matchesStatus = statusFilter === 'all' || c.status === statusFilter;
+                      return matchesSearch && matchesStatus;
+                    })
+                    .map((container) => (
+                      <div
+                        key={container.id}
+                        className="flex items-center justify-between p-3 bg-dark-800/50 rounded-lg hover:bg-dark-800 transition-colors cursor-pointer"
+                        onClick={() => navigate(`/docker/containers/${container.id}`)}
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <Terminal className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <div className="font-medium text-dark-100 truncate">{container.name}</div>
+                            <div className="text-xs text-dark-500 truncate">{container.image}</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 flex-shrink-0">
+                          {container.ports && container.ports.length > 0 && (
+                            <div className="flex gap-1">
+                              {container.ports.slice(0, 2).map((port, idx) => (
+                                <span
+                                  key={idx}
+                                  className="px-2 py-0.5 bg-dark-700 rounded text-xs text-dark-300 font-mono"
+                                >
+                                  {port.split('/')[0]}
+                                </span>
+                              ))}
+                              {container.ports.length > 2 && (
+                                <span className="text-xs text-dark-500">+{container.ports.length - 2}</span>
+                              )}
+                            </div>
+                          )}
+                          <Badge
+                            variant={
+                              container.state === 'running' ? 'success' :
+                              container.state === 'stopped' || container.state === 'exited' ? 'gray' :
+                              'warning'
+                            }
+                            className="text-xs"
+                          >
+                            {container.state}
+                          </Badge>
+                          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                            {container.state === 'running' ? (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  leftIcon={<Square className="w-3 h-3" />}
+                                  onClick={() => handleAction('stop', container)}
+                                  title="Stop"
+                                />
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  leftIcon={<RotateCcw className="w-3 h-3" />}
+                                  onClick={() => handleAction('restart', container)}
+                                  title="Restart"
+                                />
+                              </>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                leftIcon={<Play className="w-3 h-3" />}
+                                onClick={() => handleAction('start', container)}
+                                title="Start"
+                              />
+                            )}
+                            <Dropdown
+                              trigger={
+                                <Button size="sm" variant="ghost" leftIcon={<MoreVertical className="w-3 h-3" />} />
+                              }
+                            >
+                              <DropdownItem
+                                icon={<FileText className="w-4 h-4" />}
+                                onClick={() => handleAction('logs', container)}
+                              >
+                                View Logs
+                              </DropdownItem>
+                              <DropdownItem
+                                icon={<Info className="w-4 h-4" />}
+                                onClick={() => handleAction('inspect', container)}
+                              >
+                                Inspect
+                              </DropdownItem>
+                              <DropdownItem
+                                icon={<Terminal className="w-4 h-4" />}
+                                onClick={() => handleAction('terminal', container)}
+                              >
+                                Terminal
+                              </DropdownItem>
+                              <DropdownDivider />
+                              <DropdownItem
+                                icon={<Trash2 className="w-4 h-4" />}
+                                danger
+                                onClick={() => handleAction('delete', container)}
+                              >
+                                Delete
+                              </DropdownItem>
+                            </Dropdown>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </motion.div>
+            )}
+          </div>
+        ) : (
+          <Card padding>
+            <Empty
+              title="No containers found"
+              description={search ? 'Try adjusting your search terms' : 'Create your first container to get started'}
+              action={
+                !search && (
+                  <Button leftIcon={<Plus className="w-5 h-5" />} onClick={() => setShowCreateModal(true)}>
+                    Create Container
+                  </Button>
+                )
+              }
+            />
+          </Card>
+        )
+      ) : filteredContainers.length > 0 ? (
         viewMode === 'grid' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             <AnimatePresence>
@@ -584,7 +1003,10 @@ export default function DockerContainers() {
                 {filteredContainers.map((container) => (
                   <TableRow key={container.id}>
                     <TableCell>
-                      <div className="flex items-center gap-2">
+                      <div 
+                        className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={() => navigate(`/docker/containers/${container.id}`)}
+                      >
                         <Terminal className="w-4 h-4 text-blue-400" />
                         <span className="font-medium text-dark-100">{container.name}</span>
                       </div>
@@ -798,82 +1220,6 @@ export default function DockerContainers() {
             </Button>
           </div>
         </div>
-      </Modal>
-
-      {/* Container Detail Modal */}
-      <Modal
-        open={showDetailModal}
-        onClose={() => {
-          setShowDetailModal(false);
-          setSelectedContainer(null);
-        }}
-        title={selectedContainer?.name || 'Container Details'}
-        description="Container information and configuration"
-        size="lg"
-      >
-        {selectedContainer && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-dark-400">ID</label>
-                <p className="text-sm text-dark-100 font-mono">{selectedContainer.id.substring(0, 12)}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-dark-400">Status</label>
-                <Badge variant={
-                  selectedContainer.status === 'running' ? 'success' :
-                  selectedContainer.status === 'stopped' || selectedContainer.status === 'exited' ? 'gray' :
-                  selectedContainer.status === 'paused' ? 'warning' : 'info'
-                } dot>
-                  {selectedContainer.status}
-                </Badge>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-dark-400">Image</label>
-                <p className="text-sm text-dark-100">{selectedContainer.image}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-dark-400">Created</label>
-                <p className="text-sm text-dark-100">{selectedContainer.created}</p>
-              </div>
-              {selectedContainer.network && (
-                <div>
-                  <label className="text-sm font-medium text-dark-400">Network</label>
-                  <p className="text-sm text-dark-100">{selectedContainer.network}</p>
-                </div>
-              )}
-              {selectedContainer.command && (
-                <div>
-                  <label className="text-sm font-medium text-dark-400">Command</label>
-                  <p className="text-sm text-dark-100 font-mono">{selectedContainer.command}</p>
-                </div>
-              )}
-            </div>
-            {selectedContainer.ports && selectedContainer.ports.length > 0 && (
-              <div>
-                <label className="text-sm font-medium text-dark-400 mb-2 block">Ports</label>
-                <div className="flex flex-wrap gap-2">
-                  {selectedContainer.ports.map((port, i) => (
-                    <Badge key={i} variant="gray">{port}</Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-            {selectedContainer.labels && Object.keys(selectedContainer.labels).length > 0 && (
-              <div>
-                <label className="text-sm font-medium text-dark-400 mb-2 block">Labels</label>
-                <div className="bg-dark-900/50 rounded-lg p-3 space-y-1">
-                  {Object.entries(selectedContainer.labels).map(([key, value]) => (
-                    <div key={key} className="text-xs font-mono">
-                      <span className="text-dark-400">{key}:</span>{' '}
-                      <span className="text-dark-200">{value}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
       </Modal>
 
       {/* Logs Modal */}

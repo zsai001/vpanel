@@ -49,6 +49,14 @@ func (p *Plugin) Init(ctx *sdk.PluginContext) error {
 	return nil
 }
 
+// Stop cleans up plugin resources
+func (p *Plugin) Stop() error {
+	if p.service != nil {
+		p.service.Close()
+	}
+	return nil
+}
+
 // Migrate runs database migrations
 func (p *Plugin) Migrate(db *gorm.DB) error {
 	return db.AutoMigrate(&DockerComposeProject{})
@@ -69,7 +77,17 @@ func (p *Plugin) RegisterRoutes(rg *gin.RouterGroup) {
 		docker.POST("/containers/:id/stop", p.stopContainer)
 		docker.POST("/containers/:id/restart", p.restartContainer)
 		docker.GET("/containers/:id/logs", p.containerLogs)
+		docker.GET("/containers/:id/logs/stream", p.containerLogsStream)
 		docker.GET("/containers/:id/stats", p.containerStats)
+		docker.GET("/containers/:id/exec", p.containerExec)
+		
+		// Container file browser
+		docker.GET("/containers/:id/files", p.listContainerFiles)
+		docker.GET("/containers/:id/files/download", p.downloadContainerFile)
+		docker.GET("/containers/:id/files/content", p.getContainerFileContent)
+		docker.POST("/containers/:id/files/upload", p.uploadContainerFile)
+		docker.DELETE("/containers/:id/files", p.deleteContainerFile)
+		docker.POST("/containers/:id/files/mkdir", p.createContainerDirectory)
 
 		// Images
 		docker.GET("/images", p.listImages)
@@ -119,6 +137,7 @@ func (p *Plugin) GetMenuItems() []sdk.MenuItem {
 func (p *Plugin) GetFrontendRoutes() []sdk.FrontendRoute {
 	return []sdk.FrontendRoute{
 		{Path: "/docker/containers", Component: "docker/frontend/pages/Containers", Title: "Containers"},
+		{Path: "/docker/containers/:id", Component: "docker/frontend/pages/ContainerDetail", Title: "Container Details"},
 		{Path: "/docker/images", Component: "docker/frontend/pages/Images", Title: "Images"},
 		{Path: "/docker/networks", Component: "docker/frontend/pages/Networks", Title: "Networks"},
 		{Path: "/docker/volumes", Component: "docker/frontend/pages/Volumes", Title: "Volumes"},

@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus,
   Trash2,
@@ -8,6 +8,10 @@ import {
   Square,
   FileText,
   Code as CodeIcon,
+  ChevronDown,
+  ChevronRight,
+  Container,
+  Layers,
 } from 'lucide-react';
 import {
   Button,
@@ -28,7 +32,7 @@ import {
 import { cn } from '@/utils/cn';
 import toast from 'react-hot-toast';
 import * as dockerApi from '../api/docker';
-import type { ComposeProject, CreateComposeProjectRequest } from '../api/docker';
+import type { ComposeProject, CreateComposeProjectRequest, ComposeServiceInfo } from '../api/docker';
 
 export default function DockerCompose() {
   const [projects, setProjects] = useState<ComposeProject[]>([]);
@@ -47,6 +51,20 @@ export default function DockerCompose() {
   });
   const [creating, setCreating] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
+
+  // Toggle expanded state for a project
+  const toggleExpanded = (projectId: string) => {
+    setExpandedProjects((prev) => {
+      const next = new Set(prev);
+      if (next.has(projectId)) {
+        next.delete(projectId);
+      } else {
+        next.add(projectId);
+      }
+      return next;
+    });
+  };
 
   // Fetch projects
   const fetchProjects = useCallback(async () => {
@@ -236,87 +254,164 @@ export default function DockerCompose() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableCell className="w-8"></TableCell>
                 <TableCell>Name</TableCell>
                 <TableCell>Path</TableCell>
                 <TableCell>Status</TableCell>
-                <TableCell>Description</TableCell>
-                <TableCell>Created</TableCell>
+                <TableCell>Containers</TableCell>
                 <TableCell>Actions</TableCell>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredProjects.map((project) => {
                 const isLoading = actionLoading === project.id;
+                const isExpanded = expandedProjects.has(project.id);
+                const hasServices = project.services && project.services.length > 0;
                 return (
-                  <TableRow key={project.id}>
-                    <TableCell className="font-medium text-dark-100">
-                      {project.name}
-                    </TableCell>
-                    <TableCell className="text-dark-400 font-mono text-sm">
-                      {project.path}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getStatusVariant(project.status)}>
-                        {project.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-dark-400">
-                      {project.description || '-'}
-                    </TableCell>
-                    <TableCell className="text-dark-400">{formatDate(project.created)}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          leftIcon={<FileText className="w-4 h-4" />}
-                          onClick={() => {
-                            setSelectedProject(project);
-                            setShowViewModal(true);
-                          }}
-                          disabled={isLoading}
-                        >
-                          View
-                        </Button>
-                        {project.status === 'running' ? (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            leftIcon={isLoading ? <Spinner size="sm" /> : <Square className="w-4 h-4" />}
-                            onClick={() => handleComposeDown(project)}
-                            disabled={isLoading}
-                            className="text-yellow-400 hover:text-yellow-300"
+                  <React.Fragment key={project.id}>
+                    <TableRow className={cn(isExpanded && 'border-b-0')}>
+                      <TableCell className="w-8">
+                        {hasServices && (
+                          <button
+                            onClick={() => toggleExpanded(project.id)}
+                            className="p-1 hover:bg-dark-700 rounded transition-colors"
                           >
-                            Stop
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            leftIcon={isLoading ? <Spinner size="sm" /> : <Play className="w-4 h-4" />}
-                            onClick={() => handleComposeUp(project)}
-                            disabled={isLoading}
-                            className="text-green-400 hover:text-green-300"
-                          >
-                            Start
-                          </Button>
+                            {isExpanded ? (
+                              <ChevronDown className="w-4 h-4 text-dark-400" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4 text-dark-400" />
+                            )}
+                          </button>
                         )}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          leftIcon={<Trash2 className="w-4 h-4" />}
-                          onClick={() => {
-                            setSelectedProject(project);
-                            setShowDeleteModal(true);
-                          }}
-                          disabled={isLoading}
-                          className="text-red-400 hover:text-red-300"
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Layers className="w-4 h-4 text-blue-400" />
+                          <span className="font-medium text-dark-100">{project.name}</span>
+                          {project.is_auto_detected && (
+                            <Badge variant="gray" className="text-xs">Auto</Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-dark-400 font-mono text-sm">
+                        {project.path || '-'}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={getStatusVariant(project.status)}>
+                          {project.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-dark-400">
+                        <span className="text-green-400">{project.running_count}</span>
+                        {' / '}
+                        <span>{project.container_count}</span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            leftIcon={<FileText className="w-4 h-4" />}
+                            onClick={() => {
+                              setSelectedProject(project);
+                              setShowViewModal(true);
+                            }}
+                            disabled={isLoading}
+                          >
+                            View
+                          </Button>
+                          {project.status === 'running' || project.status === 'partial' ? (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              leftIcon={isLoading ? <Spinner size="sm" /> : <Square className="w-4 h-4" />}
+                              onClick={() => handleComposeDown(project)}
+                              disabled={isLoading}
+                              className="text-yellow-400 hover:text-yellow-300"
+                            >
+                              Stop
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              leftIcon={isLoading ? <Spinner size="sm" /> : <Play className="w-4 h-4" />}
+                              onClick={() => handleComposeUp(project)}
+                              disabled={isLoading}
+                              className="text-green-400 hover:text-green-300"
+                            >
+                              Start
+                            </Button>
+                          )}
+                          {!project.is_auto_detected && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              leftIcon={<Trash2 className="w-4 h-4" />}
+                              onClick={() => {
+                                setSelectedProject(project);
+                                setShowDeleteModal(true);
+                              }}
+                              disabled={isLoading}
+                              className="text-red-400 hover:text-red-300"
+                            >
+                              Delete
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                    <AnimatePresence>
+                      {isExpanded && hasServices && (
+                        <motion.tr
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="bg-dark-850"
                         >
-                          Delete
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                          <td colSpan={6} className="p-0">
+                            <div className="px-6 py-3 ml-8 border-l-2 border-dark-700">
+                              <div className="text-xs font-medium text-dark-500 uppercase mb-2">Services</div>
+                              <div className="space-y-2">
+                                {project.services.map((service: ComposeServiceInfo) => (
+                                  <div
+                                    key={service.container_id}
+                                    className="flex items-center justify-between bg-dark-800 rounded-lg px-4 py-2"
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <Container className="w-4 h-4 text-dark-500" />
+                                      <div>
+                                        <div className="text-sm font-medium text-dark-200">
+                                          {service.name}
+                                          <span className="text-dark-500 ml-2 font-normal">
+                                            ({service.container_name})
+                                          </span>
+                                        </div>
+                                        <div className="text-xs text-dark-500">{service.image}</div>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                      {service.ports && service.ports.length > 0 && (
+                                        <div className="text-xs text-dark-400 font-mono">
+                                          {service.ports.join(', ')}
+                                        </div>
+                                      )}
+                                      <Badge
+                                        variant={service.state === 'running' ? 'success' : 'gray'}
+                                        className="text-xs"
+                                      >
+                                        {service.state}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </td>
+                        </motion.tr>
+                      )}
+                    </AnimatePresence>
+                  </React.Fragment>
                 );
               })}
             </TableBody>
@@ -409,15 +504,37 @@ export default function DockerCompose() {
       >
         {selectedProject && (
           <div className="space-y-4">
-            <div>
-              <label className="label">Path</label>
-              <p className="text-dark-100 font-mono text-sm">{selectedProject.path}</p>
-            </div>
-            <div>
-              <label className="label">Status</label>
-              <Badge variant={getStatusVariant(selectedProject.status)}>
-                {selectedProject.status}
-              </Badge>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="label">Path</label>
+                <p className="text-dark-100 font-mono text-sm">{selectedProject.path || '-'}</p>
+              </div>
+              <div>
+                <label className="label">Status</label>
+                <div className="flex items-center gap-2">
+                  <Badge variant={getStatusVariant(selectedProject.status)}>
+                    {selectedProject.status}
+                  </Badge>
+                  {selectedProject.is_auto_detected && (
+                    <Badge variant="gray">Auto-detected</Badge>
+                  )}
+                </div>
+              </div>
+              <div>
+                <label className="label">Containers</label>
+                <p className="text-dark-100">
+                  <span className="text-green-400">{selectedProject.running_count}</span>
+                  {' running / '}
+                  <span>{selectedProject.container_count}</span>
+                  {' total'}
+                </p>
+              </div>
+              <div>
+                <label className="label">Config Files</label>
+                <p className="text-dark-100 font-mono text-sm">
+                  {selectedProject.config_files || '-'}
+                </p>
+              </div>
             </div>
             {selectedProject.description && (
               <div>
@@ -425,13 +542,45 @@ export default function DockerCompose() {
                 <p className="text-dark-100">{selectedProject.description}</p>
               </div>
             )}
-            <div>
-              <label className="label">docker-compose.yml</label>
-              <pre className="bg-dark-900 p-4 rounded-lg overflow-auto max-h-96 text-sm font-mono text-dark-300">
-                {/* We would need to fetch the content separately or store it */}
-                File located at: {selectedProject.path}/docker-compose.yml
-              </pre>
-            </div>
+            {selectedProject.services && selectedProject.services.length > 0 && (
+              <div>
+                <label className="label">Services ({selectedProject.services.length})</label>
+                <div className="space-y-2 mt-2">
+                  {selectedProject.services.map((service: ComposeServiceInfo) => (
+                    <div
+                      key={service.container_id}
+                      className="flex items-center justify-between bg-dark-800 rounded-lg px-4 py-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Container className="w-4 h-4 text-dark-500" />
+                        <div>
+                          <div className="text-sm font-medium text-dark-200">
+                            {service.name}
+                            <span className="text-dark-500 ml-2 font-normal">
+                              ({service.container_name})
+                            </span>
+                          </div>
+                          <div className="text-xs text-dark-500">{service.image}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        {service.ports && service.ports.length > 0 && (
+                          <div className="text-xs text-dark-400 font-mono">
+                            {service.ports.join(', ')}
+                          </div>
+                        )}
+                        <Badge
+                          variant={service.state === 'running' ? 'success' : 'gray'}
+                          className="text-xs"
+                        >
+                          {service.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </Modal>
