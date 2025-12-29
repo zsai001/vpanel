@@ -62,3 +62,4 @@ docs/.vitepress/cache/
 docs/node_modules/
 
 panel/server
+core/server

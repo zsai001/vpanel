@@ -1,6 +1,8 @@
 import { Outlet, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '@/stores/auth';
+import { BUILD_INFO } from '@/utils/version';
+import { GitBranch, GitCommit } from 'lucide-react';
 
 export default function AuthLayout() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -64,7 +66,7 @@ export default function AuthLayout() {
       </div>
 
       {/* Right side - Auth form */}
-      <div className="flex-1 flex items-center justify-center p-8">
+      <div className="flex-1 flex flex-col items-center justify-center p-8">
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -73,6 +75,19 @@ export default function AuthLayout() {
         >
           <Outlet />
         </motion.div>
+      </div>
+
+      {/* Version info footer */}
+      <div className="fixed bottom-4 right-4 flex items-center gap-3 text-xs text-dark-500">
+        <span>v{BUILD_INFO.version}</span>
+        <div className="flex items-center gap-1">
+          <GitBranch className="w-3 h-3" />
+          <span className="font-mono">{BUILD_INFO.branch}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <GitCommit className="w-3 h-3" />
+          <span className="font-mono">{BUILD_INFO.commit.substring(0, 8)}</span>
+        </div>
       </div>
     </div>
   );

@@ -22,27 +22,21 @@ export default function Footer() {
             <span>© {new Date().getFullYear()} VPanel. All rights reserved.</span>
           </div>
           <div className="flex items-center gap-4">
-            {BUILD_INFO.version !== 'dev' && (
-              <div className="flex items-center gap-1.5">
-                <span className={cn(isLight ? 'text-gray-500' : 'text-gray-500')}>v{BUILD_INFO.version}</span>
-              </div>
-            )}
-            {BUILD_INFO.branch !== 'unknown' && (
-              <div className="flex items-center gap-1.5">
-                <GitBranch className={cn('w-3.5 h-3.5', isLight ? 'text-gray-500' : 'text-gray-500')} />
-                <span className={cn('font-mono', isLight ? 'text-gray-600' : 'text-gray-400')}>
-                  {BUILD_INFO.branch}
-                </span>
-              </div>
-            )}
-            {BUILD_INFO.commit !== 'unknown' && (
-              <div className="flex items-center gap-1.5">
-                <GitCommit className={cn('w-3.5 h-3.5', isLight ? 'text-gray-500' : 'text-gray-500')} />
-                <span className={cn('font-mono', isLight ? 'text-gray-600' : 'text-gray-400')}>
-                  {BUILD_INFO.commit.substring(0, 8)}
-                </span>
-              </div>
-            )}
+            <div className="flex items-center gap-1.5">
+              <span className={cn(isLight ? 'text-gray-500' : 'text-gray-500')}>v{BUILD_INFO.version}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <GitBranch className={cn('w-3.5 h-3.5', isLight ? 'text-gray-500' : 'text-gray-500')} />
+              <span className={cn('font-mono', isLight ? 'text-gray-600' : 'text-gray-400')}>
+                {BUILD_INFO.branch}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <GitCommit className={cn('w-3.5 h-3.5', isLight ? 'text-gray-500' : 'text-gray-500')} />
+              <span className={cn('font-mono', isLight ? 'text-gray-600' : 'text-gray-400')}>
+                {BUILD_INFO.commit.substring(0, 8)}
+              </span>
+            </div>
           </div>
         </div>
       </div>
