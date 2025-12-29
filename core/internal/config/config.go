@@ -176,7 +176,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("server.cors.allowed_origins", []string{"*"})
 	v.SetDefault("server.cors.allowed_methods", []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"})
 	v.SetDefault("server.cors.allowed_headers", []string{"*"})
-	v.SetDefault("server.rate_limit.enabled", true)
+	v.SetDefault("server.rate_limit.enabled", false)
 	v.SetDefault("server.rate_limit.requests", 100)
 	v.SetDefault("server.rate_limit.window", 60)
 

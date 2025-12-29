@@ -1418,7 +1418,7 @@ func (s *Service) GetSystemSettings() (map[string]map[string]interface{}, error)
 			"server_port":        8080,
 			"max_upload_size":    100,
 			"enable_https":       false,
-			"rate_limit_enabled": true,
+			"rate_limit_enabled": false,
 			"log_level":          "info",
 			"log_retention":      30,
 		},
