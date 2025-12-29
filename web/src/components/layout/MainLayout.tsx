@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import Footer from './Footer';
 import { useUIStore } from '@/stores/ui';
 import { useThemeStore } from '@/stores/theme';
 import { cn } from '@/utils/cn';
@@ -33,18 +34,20 @@ export default function MainLayout() {
 
       {/* Main content */}
       <div
-        className="transition-all duration-300 relative z-0"
+        className="transition-all duration-300 relative z-0 flex flex-col min-h-screen"
         style={{
           marginLeft: sidebarCollapsed ? '80px' : '256px',
         }}
       >
         <Header />
         
-        <main className="p-4 sm:p-6">
+        <main className="flex-1 p-4 sm:p-6">
           <div className="max-w-[1600px] mx-auto w-full">
             <Outlet />
           </div>
         </main>
+
+        <Footer />
       </div>
     </div>
   );

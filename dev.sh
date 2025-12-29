@@ -16,6 +16,7 @@ NC='\033[0m' # No Color
 VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "dev")
 BUILD_TIME=$(date -u '+%Y-%m-%d_%H:%M:%S')
 GIT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
 
 LDFLAGS="-s -w -X main.Version=${VERSION} -X main.BuildTime=${BUILD_TIME} -X main.GitCommit=${GIT_COMMIT}"
 
@@ -36,6 +37,16 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+# 打印构建信息（分支和commit）
+print_build_info() {
+    echo ""
+    echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
+    echo -e "${BLUE}  编译分支: ${GREEN}${GIT_BRANCH}${NC}"
+    echo -e "${BLUE}  Commit:   ${GREEN}${GIT_COMMIT}${NC}"
+    echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
+    echo ""
+}
+
 # 构建 server (from core with plugins)
 build_server() {
     log_info "Building server (plugin architecture)..."
@@ -43,20 +54,30 @@ build_server() {
     cd core && CGO_ENABLED=1 go build -ldflags "${LDFLAGS}" -o ../bin/vpanel-server ./cmd/server
     cd ..
     log_success "Server built: bin/vpanel-server"
+    print_build_info
 }
 
 # 构建 web 前端
 build_web() {
     log_info "Building web frontend..."
+    
+    # 设置构建时的环境变量
+    export VITE_APP_VERSION="${VERSION}"
+    export VITE_GIT_COMMIT="${GIT_COMMIT}"
+    export VITE_GIT_BRANCH="${GIT_BRANCH}"
+    export VITE_BUILD_TIME="${BUILD_TIME}"
+    
     cd web && npm install && npm run build
     cd ..
     log_success "Web frontend built: web/dist/"
+    print_build_info
 }
 
 # 构建所有组件
 build_all() {
     build_server
     build_web
+    print_build_info
 }
 
 # 清理端口占用
@@ -113,6 +134,7 @@ build_docs() {
     cd docs && npm install && npm run build
     cd ..
     log_success "Docs built: docs/.vitepress/dist/"
+    print_build_info
 }
 
 # 开发模式 - docs
@@ -229,6 +251,7 @@ build_linux() {
     cd core && GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "${LDFLAGS}" -o ../bin/vpanel-server-linux-amd64 ./cmd/server
     cd ..
     log_success "Linux build completed"
+    print_build_info
 }
 
 build_darwin() {
@@ -238,6 +261,7 @@ build_darwin() {
     cd core && GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -ldflags "${LDFLAGS}" -o ../bin/vpanel-server-darwin-arm64 ./cmd/server
     cd ..
     log_success "macOS build completed"
+    print_build_info
 }
 
 build_windows() {
@@ -246,12 +270,14 @@ build_windows() {
     cd core && GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "${LDFLAGS}" -o ../bin/vpanel-server-windows-amd64.exe ./cmd/server
     cd ..
     log_success "Windows build completed"
+    print_build_info
 }
 
 build_platforms() {
     build_linux
     build_darwin
     build_windows
+    print_build_info
 }
 
 # 帮助信息
